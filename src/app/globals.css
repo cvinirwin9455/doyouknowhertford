@@ -1,45 +1,75 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   body {
-    @apply bg-hertford-cream text-hertford-dark font-body;
+    @apply bg-white text-gray-900 font-body antialiased;
   }
 }
 
 @layer components {
   .btn-primary {
-    @apply bg-hertford-green text-white px-6 py-3 rounded-lg font-semibold text-lg
-           hover:bg-hertford-green/90 transition-all duration-200 shadow-lg hover:shadow-xl
-           hover:-translate-y-0.5 active:translate-y-0;
+    @apply bg-gradient-to-r from-hertford-green to-hertford-green-light text-white 
+           px-8 py-4 rounded-full font-semibold text-lg
+           hover:shadow-lg hover:shadow-hertford-green/25 transition-all duration-300 
+           hover:-translate-y-0.5 active:translate-y-0 active:shadow-md
+           inline-flex items-center justify-center gap-2;
   }
   
   .btn-secondary {
-    @apply bg-hertford-gold text-hertford-dark px-6 py-3 rounded-lg font-semibold text-lg
-           hover:bg-hertford-gold/90 transition-all duration-200 shadow-lg hover:shadow-xl
-           hover:-translate-y-0.5 active:translate-y-0;
+    @apply bg-gradient-to-r from-hertford-gold to-hertford-gold-light text-gray-900 
+           px-8 py-4 rounded-full font-semibold text-lg
+           hover:shadow-lg hover:shadow-hertford-gold/25 transition-all duration-300 
+           hover:-translate-y-0.5 active:translate-y-0 active:shadow-md
+           inline-flex items-center justify-center gap-2;
+  }
+
+  .btn-outline {
+    @apply border-2 border-gray-200 text-gray-700 px-8 py-4 rounded-full font-semibold text-lg
+           hover:border-hertford-green hover:text-hertford-green transition-all duration-300
+           inline-flex items-center justify-center gap-2;
   }
 
   .card {
-    @apply bg-white rounded-xl shadow-md p-6 border border-gray-100;
+    @apply bg-white rounded-2xl shadow-sm p-8 border border-gray-100 
+           hover:shadow-md transition-all duration-300;
+  }
+
+  .card-elevated {
+    @apply bg-white rounded-2xl shadow-xl shadow-gray-200/50 p-8 border border-gray-50;
+  }
+
+  .glass {
+    @apply bg-white/80 backdrop-blur-lg border border-white/20 rounded-2xl;
   }
 
   .quiz-option {
-    @apply w-full text-left p-4 rounded-lg border-2 border-gray-200 
-           hover:border-hertford-green hover:bg-hertford-green/5 
-           transition-all duration-200 font-medium;
+    @apply w-full text-left p-5 rounded-2xl border-2 border-gray-100 
+           hover:border-hertford-green/50 hover:bg-hertford-green/5 hover:shadow-sm
+           transition-all duration-200 font-medium text-gray-700
+           active:scale-[0.98];
   }
 
   .quiz-option-selected {
-    @apply border-hertford-green bg-hertford-green/10;
+    @apply border-hertford-green bg-hertford-green/5 shadow-sm;
   }
 
   .quiz-option-correct {
-    @apply border-green-500 bg-green-50 text-green-800;
+    @apply border-green-400 bg-green-50 text-green-800 shadow-sm shadow-green-100;
   }
 
   .quiz-option-incorrect {
-    @apply border-red-500 bg-red-50 text-red-800;
+    @apply border-red-400 bg-red-50 text-red-800 shadow-sm shadow-red-100;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-hertford-green to-hertford-green-light bg-clip-text text-transparent;
+  }
+
+  .section-padding {
+    @apply py-20 md:py-28 px-4;
   }
 }
