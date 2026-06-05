@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-hertford-cream text-hertford-dark font-body;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-hertford-green text-white px-6 py-3 rounded-lg font-semibold text-lg
+           hover:bg-hertford-green/90 transition-all duration-200 shadow-lg hover:shadow-xl
+           hover:-translate-y-0.5 active:translate-y-0;
+  }
+  
+  .btn-secondary {
+    @apply bg-hertford-gold text-hertford-dark px-6 py-3 rounded-lg font-semibold text-lg
+           hover:bg-hertford-gold/90 transition-all duration-200 shadow-lg hover:shadow-xl
+           hover:-translate-y-0.5 active:translate-y-0;
+  }
+
+  .card {
+    @apply bg-white rounded-xl shadow-md p-6 border border-gray-100;
+  }
+
+  .quiz-option {
+    @apply w-full text-left p-4 rounded-lg border-2 border-gray-200 
+           hover:border-hertford-green hover:bg-hertford-green/5 
+           transition-all duration-200 font-medium;
+  }
+
+  .quiz-option-selected {
+    @apply border-hertford-green bg-hertford-green/10;
+  }
+
+  .quiz-option-correct {
+    @apply border-green-500 bg-green-50 text-green-800;
+  }
+
+  .quiz-option-incorrect {
+    @apply border-red-500 bg-red-50 text-red-800;
+  }
+}
