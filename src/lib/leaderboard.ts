@@ -50,12 +50,21 @@ export function getLeaderboard(period: 'all' | 'week' | 'today' = 'all'): Leader
 
   return sorted.map((score, index) => ({
     rank: index + 1,
-    playerName: score.playerName,
+    userId: score.userId,
+    username: score.username, // public username only — no real names or emails
     score: score.score,
     totalQuestions: score.totalQuestions,
     percentage: Math.round((score.score / score.totalQuestions) * 100),
     date: score.date,
   }))
+}
+
+/**
+ * Get the top scorer for the current week (for prize awarding)
+ */
+export function getWeeklyWinner(): LeaderboardEntry | null {
+  const weekBoard = getLeaderboard('week')
+  return weekBoard.length > 0 ? weekBoard[0] : null
 }
 
 export function clearScores(): void {

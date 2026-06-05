@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { QuizQuestion, QuizState } from '@/lib/types'
+import { QuizQuestion, QuizState, UserProfile } from '@/lib/types'
+import { getCurrentUser, createUser, isValidUsername } from '@/lib/users'
 import QuizResults from './QuizResults'
 
 const SECONDS_PER_QUESTION = 20
@@ -21,8 +22,20 @@ export default function QuizEngine({ questions }: QuizEngineProps) {
   const [timeLeft, setTimeLeft] = useState(SECONDS_PER_QUESTION)
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null)
   const [showFeedback, setShowFeedback] = useState(false)
-  const [playerName, setPlayerName] = useState('')
   const [quizStarted, setQuizStarted] = useState(false)
+
+  // User profile state
+  const [user, setUser] = useState<UserProfile | null>(null)
+  const [username, setUsername] = useState('')
+  const [fullName, setFullName] = useState('')
+  const [email, setEmail] = useState('')
+  const [profileErrors, setProfileErrors] = useState<string[]>([])
+
+  // Load existing user on mount
+  useEffect(() => {
+    const existing = getCurrentUser()
+    if (existing) setUser(existing)
+  }, [])
 
   const currentQuestion = questions[quizState.currentQuestionIndex]
 
@@ -81,6 +94,28 @@ export default function QuizEngine({ questions }: QuizEngineProps) {
     setTimeout(moveToNextQuestion, 2000)
   }
 
+  const handleCreateProfile = () => {
+    const errors: string[] = []
+
+    if (!username.trim()) errors.push('Username is required')
+    else if (!isValidUsername(username.trim())) errors.push('Username must be 3-20 characters (letters, numbers, underscores only)')
+    
+    if (!fullName.trim()) errors.push('Full name is required (for prize delivery)')
+    if (!email.trim() || !email.includes('@')) errors.push('Valid email is required (for prize notifications)')
+
+    setProfileErrors(errors)
+    if (errors.length > 0) return
+
+    const newUser = createUser(username.trim(), fullName.trim(), email.trim())
+    setUser(newUser)
+  }
+
+  const handleStartQuiz = () => {
+    if (user) {
+      setQuizStarted(true)
+    }
+  }
+
   const getOptionClass = (optionIndex: number) => {
     if (!showFeedback) {
       return selectedAnswer === optionIndex ? 'quiz-option quiz-option-selected' : 'quiz-option'
@@ -97,7 +132,7 @@ export default function QuizEngine({ questions }: QuizEngineProps) {
     return 'quiz-option opacity-50'
   }
 
-  // Name entry screen
+  // Profile creation / login screen
   if (!quizStarted) {
     return (
       <div className="max-w-lg mx-auto px-4 py-20 pt-32">
@@ -105,33 +140,123 @@ export default function QuizEngine({ questions }: QuizEngineProps) {
           <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-hertford-green to-hertford-green-light flex items-center justify-center">
             <span className="text-3xl">🎯</span>
           </div>
-          <h2 className="font-heading text-2xl font-bold mb-2">Ready to play?</h2>
-          <p className="text-gray-500 mb-8">
-            Enter your name to appear on the leaderboard
-          </p>
-          <input
-            type="text"
-            value={playerName}
-            onChange={(e) => setPlayerName(e.target.value)}
-            placeholder="Your name"
-            className="w-full px-6 py-4 border-2 border-gray-100 rounded-2xl text-center text-lg
-                       focus:border-hertford-green focus:outline-none focus:ring-4 focus:ring-hertford-green/10 
-                       transition-all mb-6 placeholder:text-gray-300"
-            maxLength={30}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && playerName.trim()) setQuizStarted(true)
-            }}
-          />
-          <button
-            onClick={() => setQuizStarted(true)}
-            disabled={!playerName.trim()}
-            className="btn-primary w-full disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:translate-y-0 disabled:hover:shadow-none"
-          >
-            Start Quiz — {questions.length} questions
-          </button>
-          <p className="text-xs text-gray-400 mt-4">
-            20 seconds per question. Good luck!
-          </p>
+
+          {/* Already have a profile */}
+          {user ? (
+            <>
+              <h2 className="font-heading text-2xl font-bold mb-2">Welcome back, {user.username}!</h2>
+              <p className="text-gray-500 mb-6">
+                Ready to play? Top the weekly leaderboard to win prizes from local businesses!
+              </p>
+
+              {/* Prize teaser */}
+              <div className="bg-gradient-to-r from-hertford-gold/10 to-amber-50 border border-hertford-gold/20 rounded-2xl p-4 mb-6 text-left">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-lg">🎁</span>
+                  <span className="font-semibold text-sm text-amber-800">Weekly Prizes!</span>
+                </div>
+                <p className="text-xs text-amber-700">
+                  The top scorer each week wins prizes from local Hertford businesses. Keep playing to stay on top!
+                </p>
+              </div>
+
+              <button
+                onClick={handleStartQuiz}
+                className="btn-primary w-full"
+              >
+                Start Quiz — {questions.length} questions
+              </button>
+              <p className="text-xs text-gray-400 mt-4">
+                20 seconds per question. Your username &quot;{user.username}&quot; will appear on the leaderboard.
+              </p>
+            </>
+          ) : (
+            <>
+              <h2 className="font-heading text-2xl font-bold mb-2">Create Your Profile</h2>
+              <p className="text-gray-500 mb-2">
+                Set up a quick profile to play and be eligible for weekly prizes!
+              </p>
+              <p className="text-xs text-gray-400 mb-6">
+                Only your username is shown publicly. Your name and email are kept private for prize delivery only.
+              </p>
+
+              {/* Profile form */}
+              <div className="space-y-4 text-left mb-6">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Username <span className="text-gray-400 font-normal">(public — shown on leaderboard)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value.replace(/\s/g, ''))}
+                    placeholder="e.g. hertford_harry"
+                    className="w-full px-5 py-3 border-2 border-gray-100 rounded-xl focus:border-hertford-green focus:outline-none focus:ring-4 focus:ring-hertford-green/10 transition-all"
+                    maxLength={20}
+                  />
+                  <p className="text-xs text-gray-400 mt-1">3-20 characters, letters, numbers & underscores</p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Full Name <span className="text-gray-400 font-normal">(private — for prize delivery)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Your real name"
+                    className="w-full px-5 py-3 border-2 border-gray-100 rounded-xl focus:border-hertford-green focus:outline-none focus:ring-4 focus:ring-hertford-green/10 transition-all"
+                    maxLength={50}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                    Email <span className="text-gray-400 font-normal">(private — for prize notifications)</span>
+                  </label>
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="you@email.com"
+                    className="w-full px-5 py-3 border-2 border-gray-100 rounded-xl focus:border-hertford-green focus:outline-none focus:ring-4 focus:ring-hertford-green/10 transition-all"
+                  />
+                </div>
+              </div>
+
+              {/* Privacy note */}
+              <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-6 text-left">
+                <div className="flex gap-2">
+                  <span className="text-blue-500">🔒</span>
+                  <p className="text-xs text-blue-700">
+                    <strong>Privacy:</strong> Your real name and email are never shown publicly. 
+                    Only your username appears on the leaderboard. We only use your email to 
+                    notify you if you win a prize.
+                  </p>
+                </div>
+              </div>
+
+              {/* Errors */}
+              {profileErrors.length > 0 && (
+                <div className="bg-red-50 border border-red-100 rounded-xl p-3 mb-4 text-left">
+                  {profileErrors.map((err, i) => (
+                    <p key={i} className="text-xs text-red-700">• {err}</p>
+                  ))}
+                </div>
+              )}
+
+              <button
+                onClick={handleCreateProfile}
+                className="btn-primary w-full"
+              >
+                Create Profile & Play
+              </button>
+              <p className="text-xs text-gray-400 mt-4">
+                One-time setup. You won&apos;t need to do this again.
+              </p>
+            </>
+          )}
         </div>
       </div>
     )
@@ -143,7 +268,7 @@ export default function QuizEngine({ questions }: QuizEngineProps) {
       <QuizResults
         quizState={quizState}
         questions={questions}
-        playerName={playerName}
+        user={user!}
       />
     )
   }

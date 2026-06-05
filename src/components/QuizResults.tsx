@@ -2,16 +2,16 @@
 
 import { useEffect } from 'react'
 import Link from 'next/link'
-import { QuizQuestion, QuizState } from '@/lib/types'
+import { QuizQuestion, QuizState, UserProfile } from '@/lib/types'
 import { saveScore } from '@/lib/leaderboard'
 
 interface QuizResultsProps {
   quizState: QuizState
   questions: QuizQuestion[]
-  playerName: string
+  user: UserProfile
 }
 
-export default function QuizResults({ quizState, questions, playerName }: QuizResultsProps) {
+export default function QuizResults({ quizState, questions, user }: QuizResultsProps) {
   const percentage = Math.round((quizState.score / questions.length) * 100)
   const timeTaken = quizState.endTime 
     ? Math.round((quizState.endTime - quizState.startTime) / 1000) 
@@ -19,7 +19,8 @@ export default function QuizResults({ quizState, questions, playerName }: QuizRe
 
   useEffect(() => {
     saveScore({
-      playerName,
+      userId: user.id,
+      username: user.username,
       score: quizState.score,
       totalQuestions: questions.length,
       timeTaken,
@@ -51,12 +52,24 @@ export default function QuizResults({ quizState, questions, playerName }: QuizRe
         <p className="text-gray-500 mb-8">{result.text}</p>
 
         {/* Score display */}
-        <div className="bg-gray-50 rounded-2xl p-8 mb-8">
+        <div className="bg-gray-50 rounded-2xl p-8 mb-6">
           <div className="text-5xl font-black gradient-text mb-1">
             {quizState.score}/{questions.length}
           </div>
           <p className="text-gray-400 text-sm">
             {percentage}% correct &middot; {timeTaken}s total
+          </p>
+        </div>
+
+        {/* Prize eligibility notice */}
+        <div className="bg-gradient-to-r from-hertford-gold/10 to-amber-50 border border-hertford-gold/20 rounded-2xl p-4 mb-6 text-left">
+          <div className="flex items-center gap-2 mb-1">
+            <span className="text-lg">🎁</span>
+            <span className="font-semibold text-sm text-amber-800">Prize Eligible!</span>
+          </div>
+          <p className="text-xs text-amber-700">
+            Your score has been added to this week&apos;s leaderboard. The top scorer at the end 
+            of the week wins prizes from local businesses! Keep playing to improve your rank.
           </p>
         </div>
 
