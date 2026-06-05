@@ -26,7 +26,8 @@ export default function QuizResults({ quizState, questions, playerName }: QuizRe
       date: new Date().toISOString(),
       categories: [...new Set(questions.map(q => q.category))],
     })
-  }, [playerName, quizState.score, questions, timeTaken])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   const getMessage = () => {
     if (percentage === 100) return { emoji: '🏆', text: 'Perfect Score! You truly know Hertford!' }
