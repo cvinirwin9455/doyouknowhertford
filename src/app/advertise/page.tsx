@@ -122,12 +122,17 @@ export default function AdvertisePage() {
               <p className="text-gray-300 mb-6">
                 Get in touch to discuss featuring your business.
               </p>
-              <a
-                href="mailto:hello@doyouknowhertford.com"
-                className="btn-secondary"
-              >
-                Get in Touch
-              </a>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link href="/submit" className="btn-secondary">
+                  Submit a Question
+                </Link>
+                <a
+                  href="mailto:hello@doyouknowhertford.com"
+                  className="btn-outline !border-white/20 !text-white hover:!text-white hover:!border-white/40"
+                >
+                  Get in Touch
+                </a>
+              </div>
               <p className="text-xs text-gray-400 mt-4">
                 hello@doyouknowhertford.com
               </p>

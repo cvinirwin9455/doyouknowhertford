@@ -36,6 +36,7 @@ export default function Footer() {
             <h4 className="font-semibold text-gray-900 mb-4 text-sm uppercase tracking-wider">Business</h4>
             <ul className="space-y-3">
               <li><Link href="/advertise" className="text-gray-500 hover:text-hertford-green transition-colors text-sm">Advertise</Link></li>
+              <li><Link href="/submit" className="text-gray-500 hover:text-hertford-green transition-colors text-sm">Submit a Question</Link></li>
               <li><a href="mailto:hello@doyouknowhertford.com" className="text-gray-500 hover:text-hertford-green transition-colors text-sm">Contact Us</a></li>
             </ul>
           </div>
