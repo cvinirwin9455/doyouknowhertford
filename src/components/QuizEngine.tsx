@@ -368,7 +368,6 @@ export default function QuizEngine({ questions }: QuizEngineProps) {
             ) : (
               <p className="font-medium">❌ Not quite. The answer was: <strong>{currentQuestion.options[currentQuestion.correctAnswer]}</strong></p>
             )}
-            <p className="text-xs mt-2 opacity-60">Source: {currentQuestion.source}</p>
           </div>
         )}
       </div>

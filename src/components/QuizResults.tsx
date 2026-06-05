@@ -73,27 +73,42 @@ export default function QuizResults({ quizState, questions, user }: QuizResultsP
           </p>
         </div>
 
-        {/* Answer breakdown */}
+        {/* Answer breakdown with sources */}
         <div className="text-left mb-8">
           <h3 className="font-semibold text-xs text-gray-400 uppercase tracking-wider mb-4">
-            Answer Breakdown
+            Answers & Sources
           </h3>
-          <div className="space-y-2 max-h-52 overflow-y-auto pr-2">
+          <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
             {questions.map((q, index) => {
               const userAnswer = quizState.answers[index]
               const isCorrect = userAnswer === q.correctAnswer
               return (
-                <div key={q.id} className={`flex items-start gap-3 text-sm p-3 rounded-xl ${isCorrect ? 'bg-green-50' : 'bg-red-50'}`}>
-                  <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${isCorrect ? 'bg-green-500' : 'bg-red-500'}`}>
-                    {isCorrect ? '✓' : '✗'}
-                  </span>
-                  <div>
-                    <p className="font-medium text-gray-700 leading-snug">{q.question}</p>
-                    {!isCorrect && (
-                      <p className="text-gray-500 text-xs mt-1">
-                        Correct: {q.options[q.correctAnswer]}
+                <div key={q.id} className={`p-4 rounded-xl border ${isCorrect ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
+                  <div className="flex items-start gap-3">
+                    <span className={`flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white ${isCorrect ? 'bg-green-500' : 'bg-red-500'}`}>
+                      {isCorrect ? '✓' : '✗'}
+                    </span>
+                    <div className="flex-1">
+                      <p className="font-medium text-gray-700 leading-snug">{q.question}</p>
+                      <p className="text-hertford-green text-sm font-medium mt-1">
+                        Answer: {q.options[q.correctAnswer]}
                       </p>
-                    )}
+                      {!isCorrect && userAnswer !== null && userAnswer !== -1 && (
+                        <p className="text-red-500 text-xs mt-0.5">
+                          You answered: {q.options[userAnswer]}
+                        </p>
+                      )}
+                      {userAnswer === -1 && (
+                        <p className="text-red-500 text-xs mt-0.5">
+                          Time ran out
+                        </p>
+                      )}
+                      <div className="mt-2 pt-2 border-t border-gray-200/50">
+                        <p className="text-xs text-gray-500">
+                          <span className="font-semibold">Why?</span> {q.source}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               )
