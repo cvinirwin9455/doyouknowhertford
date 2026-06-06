@@ -26,7 +26,7 @@ export default function QuizPage() {
   const [scoreSaved, setScoreSaved] = useState(false)
 
   // Auth state
-  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot'>('signup')
+  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot'>('login')
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
