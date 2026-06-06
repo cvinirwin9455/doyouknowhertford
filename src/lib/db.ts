@@ -113,7 +113,8 @@ export async function isUsernameTaken(username: string): Promise<boolean> {
 // ===== QUESTIONS =====
 
 /**
- * Get questions the player hasn't answered yet
+ * Get questions the player hasn't answered yet.
+ * Returns empty array if all questions have been answered (never repeats).
  */
 export async function getUnansweredQuestions(playerId: string, count: number = 10): Promise<QuizQuestion[]> {
   const { data: answered } = await supabase
@@ -131,22 +132,13 @@ export async function getUnansweredQuestions(playerId: string, count: number = 1
   const { data: unanswered } = await query
 
   if (!unanswered || unanswered.length === 0) {
-    // All seen — reset
-    await supabase.from('player_answers').delete().eq('player_id', playerId)
-    const { data: allQuestions } = await supabase.from('questions').select('*')
-    const shuffled = (allQuestions || []).sort(() => Math.random() - 0.5)
-    return shuffled.slice(0, count).map(mapDbQuestion)
+    // All questions answered — return empty (no repeats ever)
+    return []
   }
 
+  // Shuffle and return up to count
   const shuffled = unanswered.sort(() => Math.random() - 0.5)
-
-  if (shuffled.length < count) {
-    const { data: extra } = await supabase.from('questions').select('*').in('id', answeredIds)
-    const combined = [...shuffled, ...(extra || []).sort(() => Math.random() - 0.5)]
-    return combined.slice(0, count).map(mapDbQuestion)
-  }
-
-  return shuffled.slice(0, count).map(mapDbQuestion)
+  return shuffled.slice(0, Math.min(count, shuffled.length)).map(mapDbQuestion)
 }
 
 /**

@@ -11,7 +11,7 @@ import {
 
 const SECONDS_PER_QUESTION = 20
 
-type Screen = 'loading' | 'auth' | 'ready' | 'playing' | 'results'
+type Screen = 'loading' | 'auth' | 'ready' | 'playing' | 'results' | 'no-questions'
 
 export default function QuizPage() {
   const [screen, setScreen] = useState<Screen>('loading')
@@ -130,8 +130,13 @@ export default function QuizPage() {
   const startQuiz = async () => {
     if (!player) return
     const qs = await getUnansweredQuestions(player.id, 10)
-    if (qs.length === 0) return
+    if (qs.length === 0) {
+      setScreen('no-questions' as Screen)
+      return
+    }
     setQuestions(qs)
+    setSelectedAnswer(null)
+    setShowFeedback(false)
     setQuizState({ currentQuestionIndex: 0, answers: Array(qs.length).fill(null), score: 0, isComplete: false, startTime: Date.now() })
     setTimeLeft(SECONDS_PER_QUESTION)
     setScoreSaved(false)
@@ -148,7 +153,10 @@ export default function QuizPage() {
       setQuizState(prev => ({ ...prev, isComplete: true, endTime: Date.now() }))
       setScreen('results')
     } else {
-      setQuizState(prev => ({ ...prev, currentQuestionIndex: prev.currentQuestionIndex + 1 }))
+      setQuizState(prev => {
+        const nextIndex = prev.currentQuestionIndex + 1
+        return { ...prev, currentQuestionIndex: nextIndex }
+      })
     }
   }, [quizState.currentQuestionIndex, questions.length])
 
@@ -186,6 +194,33 @@ export default function QuizPage() {
     if (i === currentQuestion.correctAnswer) return 'quiz-option quiz-option-correct'
     if (i === selectedAnswer && selectedAnswer !== currentQuestion.correctAnswer) return 'quiz-option quiz-option-incorrect'
     return 'quiz-option opacity-50'
+  }
+
+  // ===== NO MORE QUESTIONS =====
+  if (screen === 'no-questions') {
+    return (
+      <div className="max-w-lg mx-auto px-4 py-20 pt-32">
+        <div className="card-elevated text-center">
+          <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-hertford-gold to-amber-400 flex items-center justify-center shadow-lg">
+            <span className="text-4xl">🎉</span>
+          </div>
+          <h2 className="font-heading text-2xl font-bold mb-3">You&apos;ve answered all questions!</h2>
+          <p className="text-gray-500 mb-6">
+            Incredible — you&apos;ve gone through every single question in our database. 
+            New questions will be released soon. Check back later!
+          </p>
+          <div className="bg-hertford-green/5 rounded-2xl p-4 mb-6">
+            <p className="text-sm text-hertford-green font-medium">
+              💡 Tip: Check the leaderboard to see how you rank against other players!
+            </p>
+          </div>
+          <div className="flex flex-col gap-3">
+            <Link href="/leaderboard" className="btn-primary w-full text-center">View Leaderboard</Link>
+            <Link href="/history" className="btn-outline w-full text-center">View My History</Link>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   // ===== LOADING =====
