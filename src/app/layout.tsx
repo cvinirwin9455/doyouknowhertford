@@ -1,9 +1,10 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import Link from 'next/link'
 
 export const metadata: Metadata = {
-  title: 'Do You Know Hertford? | Coming Soon',
-  description: 'A new quiz platform for Hertford locals. Coming soon.',
+  title: 'Do You Know Hertford? | The Ultimate Hertford Quiz',
+  description: 'Test your knowledge of Hertford, Hertfordshire! Free quiz with a shared leaderboard.',
 }
 
 export default function RootLayout({
@@ -13,8 +14,46 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>
-        {children}
+      <body className="min-h-screen flex flex-col">
+        {/* Header */}
+        <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
+          <nav className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <Link href="/" className="flex items-center gap-3 group">
+              <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-hertford-green to-hertford-green-light flex items-center justify-center text-white font-bold text-sm shadow-md shadow-hertford-green/20">
+                H
+              </div>
+              <span className="font-heading text-lg font-bold text-gray-900 hidden sm:block">
+                Do You Know Hertford?
+              </span>
+            </Link>
+            <div className="flex items-center gap-6">
+              <Link href="/quiz" className="text-gray-600 hover:text-hertford-green transition-colors font-medium text-sm">
+                Quiz
+              </Link>
+              <Link href="/leaderboard" className="text-gray-600 hover:text-hertford-green transition-colors font-medium text-sm">
+                Leaderboard
+              </Link>
+              <Link href="/quiz" className="bg-hertford-green text-white px-4 py-2 rounded-full font-semibold text-sm hover:bg-hertford-green-light transition-all">
+                Play Free
+              </Link>
+            </div>
+          </nav>
+        </header>
+
+        {/* Main */}
+        <main className="flex-1">{children}</main>
+
+        {/* Footer */}
+        <footer className="bg-gray-50 border-t border-gray-100 py-8">
+          <div className="max-w-6xl mx-auto px-6 text-center">
+            <p className="text-gray-400 text-sm">
+              &copy; {new Date().getFullYear()} Do You Know Hertford? All rights reserved.
+            </p>
+            <p className="text-gray-300 text-xs mt-1">
+              All questions verified from official sources.
+            </p>
+          </div>
+        </footer>
       </body>
     </html>
   )
