@@ -457,6 +457,19 @@ export default function QuizPage() {
         </div>
       </div>
 
+      {/* Feedback — shown ABOVE the question card when answered */}
+      {showFeedback && (
+        <div className={`mb-4 p-5 rounded-2xl text-lg font-bold text-center animate-fade-in ${selectedAnswer === currentQuestion.correctAnswer ? 'bg-green-50 text-green-800 border-2 border-green-200' : 'bg-red-50 text-red-800 border-2 border-red-200'}`}>
+          {selectedAnswer === currentQuestion.correctAnswer ? (
+            <p>✅ Correct!</p>
+          ) : selectedAnswer === -1 ? (
+            <p>⏰ Time&apos;s up!<br /><span className="text-sm font-medium">Answer: {currentQuestion.options[currentQuestion.correctAnswer]}</span></p>
+          ) : (
+            <p>❌ Incorrect<br /><span className="text-sm font-medium">Answer: {currentQuestion.options[currentQuestion.correctAnswer]}</span></p>
+          )}
+        </div>
+      )}
+
       <div className="card-elevated mb-6 animate-fade-in">
         <h2 className="font-heading text-xl md:text-2xl font-bold mb-8 leading-snug">{currentQuestion.question}</h2>
         <div className="space-y-3">
@@ -471,17 +484,6 @@ export default function QuizPage() {
             </button>
           ))}
         </div>
-        {showFeedback && (
-          <div className={`mt-6 p-4 rounded-2xl text-sm animate-fade-in ${selectedAnswer === currentQuestion.correctAnswer ? 'bg-green-50 text-green-800 border border-green-100' : 'bg-red-50 text-red-800 border border-red-100'}`}>
-            {selectedAnswer === currentQuestion.correctAnswer ? (
-              <p className="font-medium">✅ Correct!</p>
-            ) : selectedAnswer === -1 ? (
-              <p className="font-medium">⏰ Time&apos;s up! Answer: <strong>{currentQuestion.options[currentQuestion.correctAnswer]}</strong></p>
-            ) : (
-              <p className="font-medium">❌ Nope. Answer: <strong>{currentQuestion.options[currentQuestion.correctAnswer]}</strong></p>
-            )}
-          </div>
-        )}
       </div>
     </div>
   )
