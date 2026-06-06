@@ -4,14 +4,11 @@ import { Player, Score, QuizQuestion } from './types'
 // ===== AUTH (Username + Password using Supabase Auth) =====
 
 /**
- * Sign up with username and password.
- * We use username@doyouknowhertford.local as the "email" internally.
+ * Sign up with username, email, and password.
  */
-export async function signUp(username: string, password: string): Promise<{ error: string | null }> {
-  const fakeEmail = `${username.toLowerCase()}@doyouknowhertford.local`
-
+export async function signUp(username: string, email: string, password: string): Promise<{ error: string | null }> {
   const { data, error } = await supabase.auth.signUp({
-    email: fakeEmail,
+    email,
     password,
   })
 
@@ -21,10 +18,9 @@ export async function signUp(username: string, password: string): Promise<{ erro
   if (data.user) {
     const { error: profileError } = await supabase
       .from('players')
-      .insert({ auth_id: data.user.id, username: username.toLowerCase(), email: fakeEmail })
+      .insert({ auth_id: data.user.id, username: username.toLowerCase(), email })
 
     if (profileError) {
-      // Username might already be taken
       if (profileError.code === '23505') {
         return { error: 'Username already taken — try another' }
       }
@@ -36,19 +32,17 @@ export async function signUp(username: string, password: string): Promise<{ erro
 }
 
 /**
- * Sign in with username and password
+ * Sign in with email and password
  */
-export async function signIn(username: string, password: string): Promise<{ error: string | null }> {
-  const fakeEmail = `${username.toLowerCase()}@doyouknowhertford.local`
-
+export async function signIn(email: string, password: string): Promise<{ error: string | null }> {
   const { error } = await supabase.auth.signInWithPassword({
-    email: fakeEmail,
+    email,
     password,
   })
 
   if (error) {
     if (error.message.includes('Invalid login')) {
-      return { error: 'Wrong username or password' }
+      return { error: 'Wrong email or password' }
     }
     return { error: error.message }
   }

@@ -26,8 +26,9 @@ export default function QuizPage() {
   const [scoreSaved, setScoreSaved] = useState(false)
 
   // Auth state
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('login')
+  const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup')
   const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -62,12 +63,8 @@ export default function QuizPage() {
   }
 
   const handleAuth = async () => {
-    if (!username.trim() || !password.trim()) {
-      setAuthError('Username and password are required')
-      return
-    }
-    if (username.trim().length < 3) {
-      setAuthError('Username must be at least 3 characters')
+    if (!password.trim()) {
+      setAuthError('Password is required')
       return
     }
     if (password.length < 6) {
@@ -79,15 +76,23 @@ export default function QuizPage() {
     setAuthError('')
 
     if (authMode === 'signup') {
+      if (!username.trim()) { setAuthError('Username is required'); setIsSubmitting(false); return }
       if (!/^[a-zA-Z0-9_]{3,20}$/.test(username.trim())) {
         setAuthError('Username: letters, numbers & underscores only (3-20 chars)')
-        setIsSubmitting(false)
-        return
+        setIsSubmitting(false); return
       }
-      const { error } = await signUp(username.trim(), password)
+      if (!email.trim() || !email.includes('@')) {
+        setAuthError('Please enter a valid email address')
+        setIsSubmitting(false); return
+      }
+      const { error } = await signUp(username.trim(), email.trim(), password)
       if (error) { setAuthError(error); setIsSubmitting(false); return }
     } else {
-      const { error } = await signIn(username.trim(), password)
+      if (!email.trim() || !email.includes('@')) {
+        setAuthError('Please enter your email address')
+        setIsSubmitting(false); return
+      }
+      const { error } = await signIn(email.trim(), password)
       if (error) { setAuthError(error); setIsSubmitting(false); return }
     }
 
@@ -189,15 +194,27 @@ export default function QuizPage() {
           </p>
 
           <div className="space-y-4 text-left mb-6">
+            {authMode === 'signup' && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Username <span className="text-gray-400 font-normal">(shown on leaderboard)</span></label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.replace(/\s/g, ''))}
+                  placeholder="e.g. hertford_harry"
+                  className="w-full px-5 py-3 border-2 border-gray-100 rounded-xl focus:border-hertford-green focus:outline-none focus:ring-4 focus:ring-hertford-green/10 transition-all"
+                  maxLength={20}
+                />
+              </div>
+            )}
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Username</label>
+              <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email</label>
               <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value.replace(/\s/g, ''))}
-                placeholder="e.g. hertford_harry"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@email.com"
                 className="w-full px-5 py-3 border-2 border-gray-100 rounded-xl focus:border-hertford-green focus:outline-none focus:ring-4 focus:ring-hertford-green/10 transition-all"
-                maxLength={20}
               />
             </div>
             <div>
@@ -220,7 +237,7 @@ export default function QuizPage() {
           )}
 
           <button onClick={handleAuth} disabled={isSubmitting} className="btn-primary w-full disabled:opacity-50">
-            {isSubmitting ? 'Please wait...' : authMode === 'login' ? 'Sign In & Play' : 'Create Account & Play'}
+            {isSubmitting ? 'Please wait...' : authMode === 'login' ? 'Sign In' : 'Create Account'}
           </button>
 
           <p className="text-sm text-gray-500 mt-4">
