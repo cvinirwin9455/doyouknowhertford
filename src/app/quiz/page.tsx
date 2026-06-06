@@ -398,14 +398,18 @@ export default function QuizPage() {
                         {userAnswer === -1 && <p className="text-red-500 text-xs mt-0.5">Time ran out</p>}
                         <p className="text-xs text-gray-500 mt-2 pt-2 border-t border-gray-200/50">
                           <span className="font-semibold">Why?</span>{' '}
-                          <a
-                            href={`https://www.google.com/search?q=${encodeURIComponent(q.source + ' Hertford')}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-500 hover:underline"
-                          >
-                            {q.source} →
-                          </a>
+                          {q.sourceUrl ? (
+                            <a
+                              href={q.sourceUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-500 hover:underline"
+                            >
+                              {q.source} →
+                            </a>
+                          ) : (
+                            <span>{q.source}</span>
+                          )}
                         </p>
                       </div>
                     </div>

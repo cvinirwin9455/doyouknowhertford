@@ -16,6 +16,7 @@ interface AnsweredQuestion {
   category: string
   difficulty: string
   source: string
+  source_url: string | null
 }
 
 export default function HistoryPage() {
@@ -39,7 +40,7 @@ export default function HistoryPage() {
     // Fetch all answered questions with question details
     const { data, error } = await supabase
       .from('player_answers')
-      .select('question_id, was_correct, answered_at, questions(question, options, correct_answer, category, difficulty, source)')
+      .select('question_id, was_correct, answered_at, questions(question, options, correct_answer, category, difficulty, source, source_url)')
       .eq('player_id', p.id)
       .order('answered_at', { ascending: false })
 
@@ -54,6 +55,7 @@ export default function HistoryPage() {
         category: d.questions?.category || '',
         difficulty: d.questions?.difficulty || '',
         source: d.questions?.source || '',
+        source_url: d.questions?.source_url || null,
       }))
       setAnswers(mapped)
     }
@@ -301,14 +303,18 @@ export default function HistoryPage() {
 
                   <p className="text-xs text-gray-400 mt-2">
                     <span className="font-semibold">Source:</span>{' '}
-                    <a
-                      href={`https://www.google.com/search?q=${encodeURIComponent(answer.source + ' Hertford')}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-500 hover:underline"
-                    >
-                      {answer.source} →
-                    </a>
+                    {answer.source_url ? (
+                      <a
+                        href={answer.source_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-500 hover:underline"
+                      >
+                        {answer.source} →
+                      </a>
+                    ) : (
+                      <span>{answer.source}</span>
+                    )}
                   </p>
                 </div>
               </div>

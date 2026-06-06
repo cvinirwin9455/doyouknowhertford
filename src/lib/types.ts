@@ -6,6 +6,7 @@ export interface QuizQuestion {
   category: string
   difficulty: 'easy' | 'medium' | 'hard'
   source: string
+  sourceUrl?: string
 }
 
 export interface Player {

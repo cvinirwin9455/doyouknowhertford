@@ -161,6 +161,7 @@ function mapDbQuestion(dbQ: any): QuizQuestion {
     category: dbQ.category,
     difficulty: dbQ.difficulty,
     source: dbQ.source,
+    sourceUrl: dbQ.source_url || null,
   }
 }
 
