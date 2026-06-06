@@ -34,6 +34,9 @@ export default function RootLayout({
               <Link href="/leaderboard" className="text-gray-600 hover:text-hertford-green transition-colors font-medium text-sm hidden sm:block">
                 Leaderboard
               </Link>
+              <Link href="/history" className="text-gray-600 hover:text-hertford-green transition-colors font-medium text-sm hidden sm:block">
+                My History
+              </Link>
               <UserStatus />
             </div>
           </nav>
