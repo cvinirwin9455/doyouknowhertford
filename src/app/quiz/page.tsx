@@ -6,7 +6,7 @@ import { QuizQuestion, QuizState, Player } from '@/lib/types'
 import { supabase } from '@/lib/supabase'
 import {
   signUp, signIn, signOut, getCurrentUser, getPlayerByAuthId,
-  getUnansweredQuestions, recordAnswer, saveScore
+  getUnansweredQuestions, recordAnswer, saveScore, resetPassword
 } from '@/lib/db'
 
 const SECONDS_PER_QUESTION = 20
@@ -26,11 +26,12 @@ export default function QuizPage() {
   const [scoreSaved, setScoreSaved] = useState(false)
 
   // Auth state
-  const [authMode, setAuthMode] = useState<'login' | 'signup'>('signup')
+  const [authMode, setAuthMode] = useState<'login' | 'signup' | 'forgot'>('signup')
   const [username, setUsername] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [authError, setAuthError] = useState('')
+  const [authSuccess, setAuthSuccess] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   // Check if already signed in
@@ -106,6 +107,24 @@ export default function QuizPage() {
     await signOut()
     setPlayer(null)
     setScreen('auth')
+  }
+
+  const handleForgotPassword = async () => {
+    if (!email.trim() || !email.includes('@')) {
+      setAuthError('Please enter your email address first')
+      return
+    }
+    setIsSubmitting(true)
+    setAuthError('')
+    setAuthSuccess('')
+
+    const { error } = await resetPassword(email.trim())
+    if (error) {
+      setAuthError(error)
+    } else {
+      setAuthSuccess('Password reset link sent! Check your email.')
+    }
+    setIsSubmitting(false)
   }
 
   const startQuiz = async () => {
@@ -240,11 +259,27 @@ export default function QuizPage() {
             {isSubmitting ? 'Please wait...' : authMode === 'login' ? 'Sign In' : 'Create Account'}
           </button>
 
+          {authMode === 'login' && (
+            <button
+              onClick={handleForgotPassword}
+              disabled={isSubmitting}
+              className="text-sm text-gray-400 hover:text-hertford-green transition-colors mt-2"
+            >
+              Forgot your password?
+            </button>
+          )}
+
+          {authSuccess && (
+            <div className="bg-green-50 border border-green-100 rounded-xl p-3 mt-4">
+              <p className="text-sm text-green-700">{authSuccess}</p>
+            </div>
+          )}
+
           <p className="text-sm text-gray-500 mt-4">
             {authMode === 'login' ? (
-              <>Don&apos;t have an account? <button onClick={() => { setAuthMode('signup'); setAuthError('') }} className="text-hertford-green font-semibold hover:underline">Sign up</button></>
+              <>Don&apos;t have an account? <button onClick={() => { setAuthMode('signup'); setAuthError(''); setAuthSuccess('') }} className="text-hertford-green font-semibold hover:underline">Sign up</button></>
             ) : (
-              <>Already have an account? <button onClick={() => { setAuthMode('login'); setAuthError('') }} className="text-hertford-green font-semibold hover:underline">Sign in</button></>
+              <>Already have an account? <button onClick={() => { setAuthMode('login'); setAuthError(''); setAuthSuccess('') }} className="text-hertford-green font-semibold hover:underline">Sign in</button></>
             )}
           </p>
         </div>

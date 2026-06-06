@@ -51,6 +51,17 @@ export async function signIn(email: string, password: string): Promise<{ error: 
 }
 
 /**
+ * Send password reset email
+ */
+export async function resetPassword(email: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: typeof window !== 'undefined' ? window.location.origin + '/quiz' : undefined,
+  })
+  if (error) return { error: error.message }
+  return { error: null }
+}
+
+/**
  * Get current session
  */
 export async function getCurrentSession() {
