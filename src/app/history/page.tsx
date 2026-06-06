@@ -71,6 +71,40 @@ export default function HistoryPage() {
   const totalAnswered = answers.length
   const accuracy = totalAnswered > 0 ? Math.round((totalCorrect / totalAnswered) * 100) : 0
 
+  // Calculate category stats
+  const categoryStats = answers.reduce((acc, a) => {
+    const cat = a.category || 'unknown'
+    if (!acc[cat]) acc[cat] = { total: 0, correct: 0 }
+    acc[cat].total += 1
+    if (a.was_correct) acc[cat].correct += 1
+    return acc
+  }, {} as Record<string, { total: number; correct: number }>)
+
+  const categoryList = Object.entries(categoryStats)
+    .map(([category, stats]) => ({
+      category,
+      total: stats.total,
+      correct: stats.correct,
+      accuracy: Math.round((stats.correct / stats.total) * 100),
+    }))
+    .sort((a, b) => b.accuracy - a.accuracy)
+
+  const getCategoryEmoji = (cat: string) => {
+    const emojis: Record<string, string> = {
+      'history': '🏰', 'landmarks': '⛪', 'people': '👥', 'events': '📅',
+      'food-drink': '🍺', 'local-business': '🏪', 'geography': '🗺️', 'culture': '🎭',
+    }
+    return emojis[cat] || '❓'
+  }
+
+  const getCategoryLabel = (cat: string) => {
+    const labels: Record<string, string> = {
+      'history': 'History', 'landmarks': 'Landmarks', 'people': 'People', 'events': 'Events',
+      'food-drink': 'Food & Drink', 'local-business': 'Local Business', 'geography': 'Geography', 'culture': 'Culture',
+    }
+    return labels[cat] || cat
+  }
+
   if (loading) {
     return (
       <div className="max-w-3xl mx-auto px-4 py-20 pt-32 text-center">
@@ -100,7 +134,7 @@ export default function HistoryPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-10">
+      <div className="grid grid-cols-3 gap-4 mb-8">
         <div className="bg-white rounded-2xl border border-gray-100 p-5 text-center">
           <p className="text-3xl font-black text-gray-900">{totalAnswered}</p>
           <p className="text-xs text-gray-500 mt-1">Answered</p>
@@ -114,6 +148,41 @@ export default function HistoryPage() {
           <p className="text-xs text-gray-500 mt-1">Accuracy</p>
         </div>
       </div>
+
+      {/* Category Breakdown */}
+      {categoryList.length > 0 && (
+        <div className="card-elevated mb-10">
+          <h3 className="font-bold text-sm text-gray-900 mb-4">Your Strengths & Weaknesses</h3>
+          <div className="space-y-3">
+            {categoryList.map((cat) => (
+              <div key={cat.category} className="flex items-center gap-3">
+                <span className="text-xl w-8 text-center">{getCategoryEmoji(cat.category)}</span>
+                <div className="flex-1">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-sm font-medium text-gray-700">{getCategoryLabel(cat.category)}</span>
+                    <span className="text-xs text-gray-500">{cat.correct}/{cat.total} ({cat.accuracy}%)</span>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                    <div
+                      className={`h-2 rounded-full transition-all ${
+                        cat.accuracy >= 80 ? 'bg-green-500' :
+                        cat.accuracy >= 50 ? 'bg-yellow-500' :
+                        'bg-red-400'
+                      }`}
+                      style={{ width: `${cat.accuracy}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-4 pt-4 border-t border-gray-100 flex gap-4 text-xs text-gray-400">
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-green-500" /> 80%+</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-yellow-500" /> 50-79%</span>
+            <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-400" /> Below 50%</span>
+          </div>
+        </div>
+      )}
 
       {/* Filter */}
       <div className="flex justify-center mb-8">
