@@ -146,18 +146,23 @@ export default function QuizPage() {
   const currentQuestion = questions[quizState.currentQuestionIndex]
 
   const moveToNextQuestion = useCallback(() => {
-    setShowFeedback(false)
+    // Reset selection state FIRST to prevent carry-over on mobile
     setSelectedAnswer(null)
+    setShowFeedback(false)
     setTimeLeft(SECONDS_PER_QUESTION)
-    if (quizState.currentQuestionIndex >= questions.length - 1) {
-      setQuizState(prev => ({ ...prev, isComplete: true, endTime: Date.now() }))
-      setScreen('results')
-    } else {
-      setQuizState(prev => {
-        const nextIndex = prev.currentQuestionIndex + 1
-        return { ...prev, currentQuestionIndex: nextIndex }
-      })
-    }
+    
+    // Small delay to ensure state is cleared before re-render
+    setTimeout(() => {
+      if (quizState.currentQuestionIndex >= questions.length - 1) {
+        setQuizState(prev => ({ ...prev, isComplete: true, endTime: Date.now() }))
+        setScreen('results')
+      } else {
+        setQuizState(prev => ({
+          ...prev,
+          currentQuestionIndex: prev.currentQuestionIndex + 1,
+        }))
+      }
+    }, 50)
   }, [quizState.currentQuestionIndex, questions.length])
 
   useEffect(() => {
@@ -474,7 +479,7 @@ export default function QuizPage() {
         <h2 className="font-heading text-xl md:text-2xl font-bold mb-8 leading-snug">{currentQuestion.question}</h2>
         <div className="space-y-3">
           {currentQuestion.options.map((option, index) => (
-            <button key={index} onClick={() => handleAnswer(index)} disabled={showFeedback} className={getOptionClass(index)}>
+            <button key={`q${quizState.currentQuestionIndex}-opt${index}`} onClick={() => handleAnswer(index)} disabled={showFeedback} className={getOptionClass(index)}>
               <span className="inline-flex items-center gap-4">
                 <span className="w-9 h-9 rounded-xl bg-gray-50 flex items-center justify-center text-sm font-bold flex-shrink-0 border border-gray-100">
                   {String.fromCharCode(65 + index)}
