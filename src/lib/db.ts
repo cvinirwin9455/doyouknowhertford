@@ -1,23 +1,71 @@
 import { supabase } from './supabase'
 import { Player, Score, QuizQuestion } from './types'
 
-// ===== AUTH =====
+// ===== AUTH (Username + Password using Supabase Auth) =====
 
 /**
- * Send a magic link to the user's email
+ * Sign up with username and password.
+ * We use username@doyouknowhertford.local as the "email" internally.
  */
-export async function sendMagicLink(email: string): Promise<{ error: string | null }> {
-  const { error } = await supabase.auth.signInWithOtp({
-    email,
-    options: {
-      emailRedirectTo: typeof window !== 'undefined' ? window.location.origin + '/quiz' : undefined,
-    },
+export async function signUp(username: string, password: string): Promise<{ error: string | null }> {
+  const fakeEmail = `${username.toLowerCase()}@doyouknowhertford.local`
+
+  const { data, error } = await supabase.auth.signUp({
+    email: fakeEmail,
+    password,
   })
-  return { error: error?.message || null }
+
+  if (error) return { error: error.message }
+
+  // Create player profile
+  if (data.user) {
+    const { error: profileError } = await supabase
+      .from('players')
+      .insert({ auth_id: data.user.id, username: username.toLowerCase(), email: fakeEmail })
+
+    if (profileError) {
+      // Username might already be taken
+      if (profileError.code === '23505') {
+        return { error: 'Username already taken — try another' }
+      }
+      return { error: profileError.message }
+    }
+  }
+
+  return { error: null }
 }
 
 /**
- * Get current authenticated user
+ * Sign in with username and password
+ */
+export async function signIn(username: string, password: string): Promise<{ error: string | null }> {
+  const fakeEmail = `${username.toLowerCase()}@doyouknowhertford.local`
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email: fakeEmail,
+    password,
+  })
+
+  if (error) {
+    if (error.message.includes('Invalid login')) {
+      return { error: 'Wrong username or password' }
+    }
+    return { error: error.message }
+  }
+
+  return { error: null }
+}
+
+/**
+ * Get current session
+ */
+export async function getCurrentSession() {
+  const { data: { session } } = await supabase.auth.getSession()
+  return session
+}
+
+/**
+ * Get current user
  */
 export async function getCurrentUser() {
   const { data: { user } } = await supabase.auth.getUser()
@@ -46,30 +94,13 @@ export async function getPlayerByAuthId(authId: string): Promise<Player | null> 
 }
 
 /**
- * Create player profile (after first login)
- */
-export async function createPlayer(authId: string, username: string, email: string): Promise<Player | null> {
-  const { data, error } = await supabase
-    .from('players')
-    .insert({ auth_id: authId, username, email })
-    .select()
-    .single()
-
-  if (error) {
-    console.error('Error creating player:', error)
-    return null
-  }
-  return data
-}
-
-/**
  * Check if username is taken
  */
 export async function isUsernameTaken(username: string): Promise<boolean> {
   const { data } = await supabase
     .from('players')
     .select('id')
-    .eq('username', username)
+    .eq('username', username.toLowerCase())
     .single()
   return !!data
 }
@@ -80,7 +111,6 @@ export async function isUsernameTaken(username: string): Promise<boolean> {
  * Get questions the player hasn't answered yet
  */
 export async function getUnansweredQuestions(playerId: string, count: number = 10): Promise<QuizQuestion[]> {
-  // Get IDs of questions this player has already answered
   const { data: answered } = await supabase
     .from('player_answers')
     .select('question_id')
@@ -88,9 +118,7 @@ export async function getUnansweredQuestions(playerId: string, count: number = 1
 
   const answeredIds = (answered || []).map(a => a.question_id)
 
-  // Fetch questions not in the answered list
   let query = supabase.from('questions').select('*')
-  
   if (answeredIds.length > 0) {
     query = query.not('id', 'in', `(${answeredIds.join(',')})`)
   }
@@ -98,24 +126,18 @@ export async function getUnansweredQuestions(playerId: string, count: number = 1
   const { data: unanswered } = await query
 
   if (!unanswered || unanswered.length === 0) {
-    // Player has seen all questions — reset and get any questions
+    // All seen — reset
     await supabase.from('player_answers').delete().eq('player_id', playerId)
     const { data: allQuestions } = await supabase.from('questions').select('*')
     const shuffled = (allQuestions || []).sort(() => Math.random() - 0.5)
     return shuffled.slice(0, count).map(mapDbQuestion)
   }
 
-  // Shuffle and take the requested count
   const shuffled = unanswered.sort(() => Math.random() - 0.5)
-  
-  // If not enough unanswered, supplement with answered ones
+
   if (shuffled.length < count) {
-    const { data: extra } = await supabase
-      .from('questions')
-      .select('*')
-      .in('id', answeredIds)
-    const shuffledExtra = (extra || []).sort(() => Math.random() - 0.5)
-    const combined = [...shuffled, ...shuffledExtra.slice(0, count - shuffled.length)]
+    const { data: extra } = await supabase.from('questions').select('*').in('id', answeredIds)
+    const combined = [...shuffled, ...(extra || []).sort(() => Math.random() - 0.5)]
     return combined.slice(0, count).map(mapDbQuestion)
   }
 
@@ -133,9 +155,6 @@ export async function recordAnswer(playerId: string, questionId: string, wasCorr
   }, { onConflict: 'player_id,question_id' })
 }
 
-/**
- * Map database question to app type
- */
 function mapDbQuestion(dbQ: any): QuizQuestion {
   return {
     id: dbQ.id,
@@ -150,36 +169,18 @@ function mapDbQuestion(dbQ: any): QuizQuestion {
 
 // ===== SCORES =====
 
-/**
- * Save a quiz score
- */
-export async function saveScore(
-  playerId: string,
-  username: string,
-  score: number,
-  totalQuestions: number,
-  timeTaken: number
-): Promise<boolean> {
-  const { error } = await supabase
-    .from('scores')
-    .insert({
-      player_id: playerId,
-      username,
-      score,
-      total_questions: totalQuestions,
-      time_taken: timeTaken,
-    })
-
-  if (error) {
-    console.error('Error saving score:', error)
-    return false
-  }
+export async function saveScore(playerId: string, username: string, score: number, totalQuestions: number, timeTaken: number): Promise<boolean> {
+  const { error } = await supabase.from('scores').insert({
+    player_id: playerId,
+    username,
+    score,
+    total_questions: totalQuestions,
+    time_taken: timeTaken,
+  })
+  if (error) { console.error('Error saving score:', error); return false }
   return true
 }
 
-/**
- * Get leaderboard
- */
 export async function getLeaderboard(period: 'all' | 'week' | 'today' = 'all'): Promise<Score[]> {
   let query = supabase
     .from('scores')
@@ -189,12 +190,10 @@ export async function getLeaderboard(period: 'all' | 'week' | 'today' = 'all'): 
     .limit(50)
 
   if (period === 'today') {
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
+    const today = new Date(); today.setHours(0, 0, 0, 0)
     query = query.gte('played_at', today.toISOString())
   } else if (period === 'week') {
-    const weekAgo = new Date()
-    weekAgo.setDate(weekAgo.getDate() - 7)
+    const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7)
     query = query.gte('played_at', weekAgo.toISOString())
   }
 
