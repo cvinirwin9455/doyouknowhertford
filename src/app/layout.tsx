@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 import Link from 'next/link'
 import UserStatus from '@/components/UserStatus'
+import CookieConsent from '@/components/CookieConsent'
 
 export const metadata: Metadata = {
   title: 'Do You Know Hertford? | The Ultimate Hertford Quiz',
@@ -48,11 +49,22 @@ export default function RootLayout({
         {/* Footer */}
         <footer className="bg-gray-50 border-t border-gray-100 py-8">
           <div className="max-w-6xl mx-auto px-6 text-center">
-            <p className="text-gray-400 text-sm">
+            <div className="flex justify-center gap-4 mb-3">
+              <Link href="/privacy" className="text-gray-400 hover:text-hertford-green transition-colors text-xs">
+                Privacy Policy
+              </Link>
+              <Link href="/delete-account" className="text-gray-400 hover:text-hertford-green transition-colors text-xs">
+                Delete Account
+              </Link>
+            </div>
+            <p className="text-gray-400 text-xs">
               &copy; {new Date().getFullYear()} Do You Know Hertford? All rights reserved.
             </p>
           </div>
         </footer>
+
+        {/* Cookie Consent Banner */}
+        <CookieConsent />
       </body>
     </html>
   )
