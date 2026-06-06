@@ -1,5 +1,3 @@
-import Link from 'next/link'
-
 export default function HomePage() {
   return (
     <div className="min-h-screen flex items-center justify-center px-4 py-20 bg-gradient-to-br from-hertford-dark via-hertford-blue to-hertford-dark">
@@ -25,23 +23,6 @@ export default function HomePage() {
           A new quiz platform for Hertford locals. Test your knowledge, 
           compete on leaderboards, and win prizes from local businesses.
         </p>
-
-        {/* Contact */}
-        <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-8 mb-8">
-          <h2 className="font-bold text-lg mb-2">Interested in this project?</h2>
-          <p className="text-gray-400 text-sm mb-6">
-            Whether you&apos;re a local business, a developer, or just curious — get in touch.
-          </p>
-          <a
-            href="mailto:hello@doyouknowhertford.com"
-            className="inline-flex items-center gap-2 bg-gradient-to-r from-hertford-green to-hertford-green-light text-white px-8 py-4 rounded-full font-semibold text-lg hover:shadow-lg hover:shadow-hertford-green/25 transition-all hover:-translate-y-0.5"
-          >
-            Get in Touch
-          </a>
-          <p className="text-gray-500 text-sm mt-4">
-            hello@doyouknowhertford.com
-          </p>
-        </div>
 
         {/* Footer */}
         <p className="text-gray-600 text-xs">
