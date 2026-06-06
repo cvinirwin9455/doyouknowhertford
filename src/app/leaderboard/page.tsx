@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { Score } from '@/lib/types'
 import { getLeaderboard } from '@/lib/db'
 
-type Period = 'all' | 'week' | 'today'
+type Period = 'all' | 'week' | 'month' | 'today'
 
 export default function LeaderboardPage() {
   const [period, setPeriod] = useState<Period>('week')
@@ -51,6 +51,7 @@ export default function LeaderboardPage() {
           {[
             { key: 'today' as Period, label: 'Today' },
             { key: 'week' as Period, label: 'This Week' },
+            { key: 'month' as Period, label: 'This Month' },
             { key: 'all' as Period, label: 'All Time' },
           ].map(tab => (
             <button
@@ -104,18 +105,13 @@ export default function LeaderboardPage() {
               <div className="flex-1 min-w-0">
                 <p className="font-semibold text-gray-900 truncate">@{entry.username}</p>
                 <p className="text-xs text-gray-400">
-                  {new Date(entry.played_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                  {' · '}{entry.time_taken}s
+                  {entry.time_taken} {entry.time_taken === 1 ? 'game' : 'games'} played
                 </p>
               </div>
               <div className="text-right">
-                <p className="font-bold text-gray-900">{entry.score}/{entry.total_questions}</p>
-                <p className={`text-xs font-semibold ${
-                  (entry.score / entry.total_questions) >= 0.8 ? 'text-green-600' :
-                  (entry.score / entry.total_questions) >= 0.5 ? 'text-yellow-600' :
-                  'text-red-500'
-                }`}>
-                  {Math.round((entry.score / entry.total_questions) * 100)}%
+                <p className="font-bold text-gray-900">{entry.score} pts</p>
+                <p className="text-xs text-gray-500">
+                  {entry.total_questions} Qs answered
                 </p>
               </div>
             </div>

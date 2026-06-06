@@ -186,13 +186,8 @@ export async function saveScore(playerId: string, username: string, score: numbe
   return true
 }
 
-export async function getLeaderboard(period: 'all' | 'week' | 'today' = 'all'): Promise<Score[]> {
-  let query = supabase
-    .from('scores')
-    .select('*')
-    .order('score', { ascending: false })
-    .order('time_taken', { ascending: true })
-    .limit(50)
+export async function getLeaderboard(period: 'all' | 'week' | 'month' | 'today' = 'all'): Promise<Score[]> {
+  let query = supabase.from('scores').select('*')
 
   if (period === 'today') {
     const today = new Date(); today.setHours(0, 0, 0, 0)
@@ -200,9 +195,40 @@ export async function getLeaderboard(period: 'all' | 'week' | 'today' = 'all'): 
   } else if (period === 'week') {
     const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate() - 7)
     query = query.gte('played_at', weekAgo.toISOString())
+  } else if (period === 'month') {
+    const monthAgo = new Date(); monthAgo.setDate(monthAgo.getDate() - 30)
+    query = query.gte('played_at', monthAgo.toISOString())
   }
 
   const { data, error } = await query
   if (error) { console.error('Error fetching leaderboard:', error); return [] }
-  return data || []
+
+  // Aggregate all scores per player into one cumulative total
+  const playerScores: Record<string, { username: string; totalScore: number; totalQuestions: number; gamesPlayed: number; lastPlayed: string }> = {}
+
+  for (const score of (data || [])) {
+    if (!playerScores[score.player_id]) {
+      playerScores[score.player_id] = { username: score.username, totalScore: 0, totalQuestions: 0, gamesPlayed: 0, lastPlayed: score.played_at }
+    }
+    playerScores[score.player_id].totalScore += score.score
+    playerScores[score.player_id].totalQuestions += score.total_questions
+    playerScores[score.player_id].gamesPlayed += 1
+    if (score.played_at > playerScores[score.player_id].lastPlayed) {
+      playerScores[score.player_id].lastPlayed = score.played_at
+    }
+  }
+
+  // Sort by total score desc, then games played desc
+  return Object.entries(playerScores)
+    .map(([playerId, d]) => ({
+      id: playerId,
+      player_id: playerId,
+      username: d.username,
+      score: d.totalScore,
+      total_questions: d.totalQuestions,
+      time_taken: d.gamesPlayed,
+      played_at: d.lastPlayed,
+    }))
+    .sort((a, b) => b.score !== a.score ? b.score - a.score : b.time_taken - a.time_taken)
+    .slice(0, 50)
 }
