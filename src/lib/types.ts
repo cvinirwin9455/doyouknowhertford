@@ -3,25 +3,15 @@ export interface QuizQuestion {
   question: string
   options: string[]
   correctAnswer: number
-  category: QuizCategory
+  category: string
   difficulty: 'easy' | 'medium' | 'hard'
   source: string
 }
 
-export type QuizCategory =
-  | 'history'
-  | 'landmarks'
-  | 'people'
-  | 'events'
-  | 'food-drink'
-  | 'local-business'
-  | 'geography'
-  | 'culture'
-
 export interface Player {
   id: string
+  auth_id: string
   username: string
-  full_name: string
   email: string
   created_at: string
 }

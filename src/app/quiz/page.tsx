@@ -3,17 +3,24 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { QuizQuestion, QuizState, Player } from '@/lib/types'
-import { getQuizQuestions } from '@/data/questions'
-import { createPlayer, getPlayerByUsername, isUsernameTaken, saveScore } from '@/lib/db'
+import { supabase } from '@/lib/supabase'
+import {
+  sendMagicLink, getCurrentUser, getPlayerByAuthId,
+  createPlayer, isUsernameTaken,
+  getUnansweredQuestions, recordAnswer, saveScore
+} from '@/lib/db'
 
 const SECONDS_PER_QUESTION = 20
-const PLAYER_KEY = 'hertford_quiz_player'
+
+type Screen = 'loading' | 'login' | 'check-email' | 'create-username' | 'ready' | 'playing' | 'results'
 
 export default function QuizPage() {
-  const [questions] = useState<QuizQuestion[]>(() => getQuizQuestions(10))
+  const [screen, setScreen] = useState<Screen>('loading')
+  const [player, setPlayer] = useState<Player | null>(null)
+  const [questions, setQuestions] = useState<QuizQuestion[]>([])
   const [quizState, setQuizState] = useState<QuizState>({
     currentQuestionIndex: 0,
-    answers: Array(10).fill(null),
+    answers: [],
     score: 0,
     isComplete: false,
     startTime: Date.now(),
@@ -21,26 +28,117 @@ export default function QuizPage() {
   const [timeLeft, setTimeLeft] = useState(SECONDS_PER_QUESTION)
   const [selectedAnswer, setSelectedAnswer] = useState<number | null>(null)
   const [showFeedback, setShowFeedback] = useState(false)
-  const [quizStarted, setQuizStarted] = useState(false)
-
-  // Player state
-  const [player, setPlayer] = useState<Player | null>(null)
-  const [username, setUsername] = useState('')
-  const [fullName, setFullName] = useState('')
-  const [email, setEmail] = useState('')
-  const [profileErrors, setProfileErrors] = useState<string[]>([])
-  const [isSubmitting, setIsSubmitting] = useState(false)
   const [scoreSaved, setScoreSaved] = useState(false)
 
-  // Load existing player from localStorage
+  // Login state
+  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
+  const [loginError, setLoginError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Check auth on mount
   useEffect(() => {
-    const saved = localStorage.getItem(PLAYER_KEY)
-    if (saved) {
-      try {
-        setPlayer(JSON.parse(saved))
-      } catch {}
-    }
+    checkAuth()
+
+    // Listen for auth changes (magic link callback)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        checkPlayerProfile(session.user.id, session.user.email || '')
+      }
+    })
+
+    return () => subscription.unsubscribe()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
+
+  const checkAuth = async () => {
+    const user = await getCurrentUser()
+    if (user) {
+      await checkPlayerProfile(user.id, user.email || '')
+    } else {
+      setScreen('login')
+    }
+  }
+
+  const checkPlayerProfile = async (authId: string, email: string) => {
+    const existingPlayer = await getPlayerByAuthId(authId)
+    if (existingPlayer) {
+      setPlayer(existingPlayer)
+      setScreen('ready')
+    } else {
+      // First time — need to choose a username
+      setEmail(email)
+      setScreen('create-username')
+    }
+  }
+
+  const handleSendMagicLink = async () => {
+    if (!email.trim() || !email.includes('@')) {
+      setLoginError('Please enter a valid email')
+      return
+    }
+    setIsSubmitting(true)
+    setLoginError('')
+
+    const { error } = await sendMagicLink(email.trim())
+    if (error) {
+      setLoginError(error)
+      setIsSubmitting(false)
+    } else {
+      setScreen('check-email')
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleCreateUsername = async () => {
+    if (!username.trim() || !/^[a-zA-Z0-9_]{3,20}$/.test(username.trim())) {
+      setLoginError('Username: 3-20 characters, letters/numbers/underscores only')
+      return
+    }
+    setIsSubmitting(true)
+    setLoginError('')
+
+    const taken = await isUsernameTaken(username.trim())
+    if (taken) {
+      setLoginError('Username already taken — try another')
+      setIsSubmitting(false)
+      return
+    }
+
+    const user = await getCurrentUser()
+    if (!user) { setLoginError('Session expired — please log in again'); setScreen('login'); return }
+
+    const newPlayer = await createPlayer(user.id, username.trim(), user.email || email)
+    if (!newPlayer) {
+      setLoginError('Something went wrong — try again')
+      setIsSubmitting(false)
+      return
+    }
+
+    setPlayer(newPlayer)
+    setScreen('ready')
+    setIsSubmitting(false)
+  }
+
+  const startQuiz = async () => {
+    if (!player) return
+    const qs = await getUnansweredQuestions(player.id, 10)
+    if (qs.length === 0) {
+      setLoginError('No questions available — check back soon!')
+      return
+    }
+    setQuestions(qs)
+    setQuizState({
+      currentQuestionIndex: 0,
+      answers: Array(qs.length).fill(null),
+      score: 0,
+      isComplete: false,
+      startTime: Date.now(),
+    })
+    setTimeLeft(SECONDS_PER_QUESTION)
+    setScoreSaved(false)
+    setScreen('playing')
+  }
 
   const currentQuestion = questions[quizState.currentQuestionIndex]
 
@@ -51,6 +149,7 @@ export default function QuizPage() {
 
     if (quizState.currentQuestionIndex >= questions.length - 1) {
       setQuizState(prev => ({ ...prev, isComplete: true, endTime: Date.now() }))
+      setScreen('results')
     } else {
       setQuizState(prev => ({ ...prev, currentQuestionIndex: prev.currentQuestionIndex + 1 }))
     }
@@ -58,25 +157,22 @@ export default function QuizPage() {
 
   // Timer
   useEffect(() => {
-    if (!quizStarted || quizState.isComplete || showFeedback) return
+    if (screen !== 'playing' || showFeedback) return
     if (timeLeft <= 0) { handleAnswer(-1); return }
-
     const timer = setInterval(() => setTimeLeft(prev => prev - 1), 1000)
     return () => clearInterval(timer)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [timeLeft, quizStarted, quizState.isComplete, showFeedback])
+  }, [timeLeft, screen, showFeedback])
 
-  // Save score when quiz completes
+  // Save score when complete
   useEffect(() => {
-    if (quizState.isComplete && player && !scoreSaved) {
-      const timeTaken = quizState.endTime
-        ? Math.round((quizState.endTime - quizState.startTime) / 1000)
-        : 0
+    if (screen === 'results' && player && !scoreSaved) {
+      const timeTaken = quizState.endTime ? Math.round((quizState.endTime - quizState.startTime) / 1000) : 0
       saveScore(player.id, player.username, quizState.score, questions.length, timeTaken)
       setScoreSaved(true)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quizState.isComplete])
+  }, [screen])
 
   const handleAnswer = (answerIndex: number) => {
     if (showFeedback) return
@@ -87,150 +183,169 @@ export default function QuizPage() {
     const newAnswers = [...quizState.answers]
     newAnswers[quizState.currentQuestionIndex] = answerIndex
 
-    setQuizState(prev => ({
-      ...prev,
-      answers: newAnswers,
-      score: isCorrect ? prev.score + 1 : prev.score,
-    }))
+    setQuizState(prev => ({ ...prev, answers: newAnswers, score: isCorrect ? prev.score + 1 : prev.score }))
+
+    // Record this answer in the database
+    if (player) {
+      recordAnswer(player.id, currentQuestion.id, isCorrect)
+    }
 
     setTimeout(moveToNextQuestion, 1800)
   }
 
-  const handleCreateProfile = async () => {
-    const errors: string[] = []
-    if (!username.trim()) errors.push('Username is required')
-    else if (!/^[a-zA-Z0-9_]{3,20}$/.test(username.trim())) errors.push('Username: 3-20 chars, letters/numbers/underscores')
-    if (!fullName.trim()) errors.push('Full name is required')
-    if (!email.trim() || !email.includes('@')) errors.push('Valid email required')
-
-    if (errors.length > 0) { setProfileErrors(errors); return }
-
-    setIsSubmitting(true)
-    setProfileErrors([])
-
-    // Check username availability
-    const taken = await isUsernameTaken(username.trim())
-    if (taken) {
-      setProfileErrors(['Username already taken — try another'])
-      setIsSubmitting(false)
-      return
-    }
-
-    // Create player
-    const newPlayer = await createPlayer(username.trim(), fullName.trim(), email.trim())
-    if (!newPlayer) {
-      setProfileErrors(['Something went wrong — please try again'])
-      setIsSubmitting(false)
-      return
-    }
-
-    localStorage.setItem(PLAYER_KEY, JSON.stringify(newPlayer))
-    setPlayer(newPlayer)
-    setIsSubmitting(false)
-  }
-
-  const getOptionClass = (optionIndex: number) => {
-    if (!showFeedback) {
-      return selectedAnswer === optionIndex ? 'quiz-option quiz-option-selected' : 'quiz-option'
-    }
-    if (optionIndex === currentQuestion.correctAnswer) return 'quiz-option quiz-option-correct'
-    if (optionIndex === selectedAnswer && selectedAnswer !== currentQuestion.correctAnswer) return 'quiz-option quiz-option-incorrect'
+  const getOptionClass = (i: number) => {
+    if (!showFeedback) return selectedAnswer === i ? 'quiz-option quiz-option-selected' : 'quiz-option'
+    if (i === currentQuestion.correctAnswer) return 'quiz-option quiz-option-correct'
+    if (i === selectedAnswer && selectedAnswer !== currentQuestion.correctAnswer) return 'quiz-option quiz-option-incorrect'
     return 'quiz-option opacity-50'
   }
 
-  // ===== PROFILE SCREEN =====
-  if (!quizStarted) {
+  // ===== LOADING =====
+  if (screen === 'loading') {
+    return (
+      <div className="max-w-lg mx-auto px-4 py-20 pt-32 text-center">
+        <div className="w-8 h-8 border-4 border-hertford-green/20 border-t-hertford-green rounded-full animate-spin mx-auto mb-4" />
+        <p className="text-gray-400 text-sm">Loading...</p>
+      </div>
+    )
+  }
+
+  // ===== LOGIN (MAGIC LINK) =====
+  if (screen === 'login') {
     return (
       <div className="max-w-lg mx-auto px-4 py-20 pt-32">
         <div className="card-elevated text-center">
           <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-hertford-green to-hertford-green-light flex items-center justify-center">
             <span className="text-3xl">🎯</span>
           </div>
+          <h2 className="font-heading text-2xl font-bold mb-2">Sign In to Play</h2>
+          <p className="text-gray-500 text-sm mb-6">
+            Enter your email and we&apos;ll send you a magic link — no password needed!
+          </p>
 
-          {player ? (
-            <>
-              <h2 className="font-heading text-2xl font-bold mb-2">Welcome back, @{player.username}!</h2>
-              <p className="text-gray-500 mb-8">Ready to test your Hertford knowledge?</p>
-              <button onClick={() => setQuizStarted(true)} className="btn-primary w-full">
-                Start Quiz — {questions.length} questions
-              </button>
-              <p className="text-xs text-gray-400 mt-4">20 seconds per question</p>
-            </>
-          ) : (
-            <>
-              <h2 className="font-heading text-2xl font-bold mb-2">Create Your Profile</h2>
-              <p className="text-gray-500 text-sm mb-6">
-                Choose a username for the leaderboard. Your name and email are kept private.
-              </p>
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@email.com"
+            className="w-full px-5 py-4 border-2 border-gray-100 rounded-xl focus:border-hertford-green focus:outline-none focus:ring-4 focus:ring-hertford-green/10 transition-all mb-4 text-center"
+            onKeyDown={(e) => { if (e.key === 'Enter') handleSendMagicLink() }}
+          />
 
-              <div className="space-y-4 text-left mb-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    Username <span className="text-gray-400 font-normal">(public)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value.replace(/\s/g, ''))}
-                    placeholder="e.g. hertford_harry"
-                    className="w-full px-5 py-3 border-2 border-gray-100 rounded-xl focus:border-hertford-green focus:outline-none focus:ring-4 focus:ring-hertford-green/10 transition-all"
-                    maxLength={20}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    Full Name <span className="text-gray-400 font-normal">(private)</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Your real name"
-                    className="w-full px-5 py-3 border-2 border-gray-100 rounded-xl focus:border-hertford-green focus:outline-none focus:ring-4 focus:ring-hertford-green/10 transition-all"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    Email <span className="text-gray-400 font-normal">(private)</span>
-                  </label>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@email.com"
-                    className="w-full px-5 py-3 border-2 border-gray-100 rounded-xl focus:border-hertford-green focus:outline-none focus:ring-4 focus:ring-hertford-green/10 transition-all"
-                  />
-                </div>
-              </div>
-
-              <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mb-6 text-left">
-                <p className="text-xs text-blue-700">
-                  <strong>🔒 Privacy:</strong> Only your username appears on the leaderboard. Name and email are never shown publicly.
-                </p>
-              </div>
-
-              {profileErrors.length > 0 && (
-                <div className="bg-red-50 border border-red-100 rounded-xl p-3 mb-4 text-left">
-                  {profileErrors.map((err, i) => <p key={i} className="text-xs text-red-700">• {err}</p>)}
-                </div>
-              )}
-
-              <button
-                onClick={handleCreateProfile}
-                disabled={isSubmitting}
-                className="btn-primary w-full disabled:opacity-50"
-              >
-                {isSubmitting ? 'Creating...' : 'Create Profile & Play'}
-              </button>
-            </>
+          {loginError && (
+            <p className="text-red-600 text-sm mb-4">{loginError}</p>
           )}
+
+          <button
+            onClick={handleSendMagicLink}
+            disabled={isSubmitting}
+            className="btn-primary w-full disabled:opacity-50"
+          >
+            {isSubmitting ? 'Sending...' : 'Send Magic Link'}
+          </button>
+
+          <p className="text-xs text-gray-400 mt-4">
+            We&apos;ll email you a link to sign in. No password required.
+          </p>
         </div>
       </div>
     )
   }
 
-  // ===== RESULTS SCREEN =====
-  if (quizState.isComplete) {
+  // ===== CHECK EMAIL =====
+  if (screen === 'check-email') {
+    return (
+      <div className="max-w-lg mx-auto px-4 py-20 pt-32">
+        <div className="card-elevated text-center">
+          <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-blue-400 to-blue-500 flex items-center justify-center">
+            <span className="text-3xl">📧</span>
+          </div>
+          <h2 className="font-heading text-2xl font-bold mb-2">Check Your Email</h2>
+          <p className="text-gray-500 mb-6">
+            We sent a magic link to <strong className="text-gray-700">{email}</strong>
+          </p>
+          <p className="text-gray-400 text-sm mb-8">
+            Click the link in the email to sign in. It may take a moment to arrive.
+          </p>
+          <button
+            onClick={() => setScreen('login')}
+            className="text-hertford-green font-medium hover:underline text-sm"
+          >
+            ← Use a different email
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ===== CREATE USERNAME =====
+  if (screen === 'create-username') {
+    return (
+      <div className="max-w-lg mx-auto px-4 py-20 pt-32">
+        <div className="card-elevated text-center">
+          <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-hertford-green to-hertford-green-light flex items-center justify-center">
+            <span className="text-3xl">👋</span>
+          </div>
+          <h2 className="font-heading text-2xl font-bold mb-2">Choose Your Username</h2>
+          <p className="text-gray-500 text-sm mb-6">
+            This is what appears on the leaderboard. Pick something fun!
+          </p>
+
+          <input
+            type="text"
+            value={username}
+            onChange={(e) => setUsername(e.target.value.replace(/\s/g, ''))}
+            placeholder="e.g. hertford_harry"
+            className="w-full px-5 py-4 border-2 border-gray-100 rounded-xl focus:border-hertford-green focus:outline-none focus:ring-4 focus:ring-hertford-green/10 transition-all mb-2 text-center"
+            maxLength={20}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleCreateUsername() }}
+          />
+          <p className="text-xs text-gray-400 mb-4">3-20 characters, letters, numbers & underscores</p>
+
+          {loginError && (
+            <p className="text-red-600 text-sm mb-4">{loginError}</p>
+          )}
+
+          <button
+            onClick={handleCreateUsername}
+            disabled={isSubmitting}
+            className="btn-primary w-full disabled:opacity-50"
+          >
+            {isSubmitting ? 'Creating...' : 'Let\'s Go!'}
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // ===== READY TO PLAY =====
+  if (screen === 'ready') {
+    return (
+      <div className="max-w-lg mx-auto px-4 py-20 pt-32">
+        <div className="card-elevated text-center">
+          <div className="w-16 h-16 mx-auto mb-6 rounded-2xl bg-gradient-to-br from-hertford-green to-hertford-green-light flex items-center justify-center">
+            <span className="text-3xl">🎯</span>
+          </div>
+          <h2 className="font-heading text-2xl font-bold mb-2">Welcome, @{player?.username}!</h2>
+          <p className="text-gray-500 mb-8">Ready to test your Hertford knowledge?</p>
+
+          <button onClick={startQuiz} className="btn-primary w-full">
+            Start Quiz — 10 questions
+          </button>
+          <p className="text-xs text-gray-400 mt-4">20 seconds per question. Good luck!</p>
+
+          <div className="mt-6 pt-6 border-t border-gray-100">
+            <Link href="/leaderboard" className="text-hertford-green font-medium text-sm hover:underline">
+              View Leaderboard →
+            </Link>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ===== RESULTS =====
+  if (screen === 'results') {
     const percentage = Math.round((quizState.score / questions.length) * 100)
     const timeTaken = quizState.endTime ? Math.round((quizState.endTime - quizState.startTime) / 1000) : 0
 
@@ -249,16 +364,15 @@ export default function QuizPage() {
           <div className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-hertford-green to-hertford-green-light flex items-center justify-center shadow-lg">
             <span className="text-4xl">{result.emoji}</span>
           </div>
-
           <h2 className="font-heading text-3xl font-bold mb-2">Quiz Complete!</h2>
           <p className="text-gray-500 mb-8">{result.text}</p>
 
           <div className="bg-gray-50 rounded-2xl p-8 mb-6">
             <div className="text-5xl font-black gradient-text mb-1">{quizState.score}/{questions.length}</div>
-            <p className="text-gray-400 text-sm">{percentage}% correct &middot; {timeTaken}s total</p>
+            <p className="text-gray-400 text-sm">{percentage}% correct &middot; {timeTaken}s</p>
           </div>
 
-          {/* Answer breakdown with sources */}
+          {/* Answers & Sources */}
           <div className="text-left mb-8">
             <h3 className="font-semibold text-xs text-gray-400 uppercase tracking-wider mb-4">Answers & Sources</h3>
             <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
@@ -277,7 +391,6 @@ export default function QuizPage() {
                         {!isCorrect && userAnswer !== null && userAnswer !== -1 && (
                           <p className="text-red-500 text-xs mt-0.5">You answered: {q.options[userAnswer]}</p>
                         )}
-                        {userAnswer === -1 && <p className="text-red-500 text-xs mt-0.5">Time ran out</p>}
                         <p className="text-xs text-gray-500 mt-2 pt-2 border-t border-gray-200/50">
                           <span className="font-semibold">Why?</span> {q.source}
                         </p>
@@ -290,25 +403,17 @@ export default function QuizPage() {
           </div>
 
           <div className="flex flex-col gap-3">
-            <Link href="/quiz" className="btn-primary w-full text-center">Play Again</Link>
+            <button onClick={startQuiz} className="btn-primary w-full">Play Again</button>
             <Link href="/leaderboard" className="btn-outline w-full text-center">View Leaderboard</Link>
-            <button
-              onClick={() => {
-                const text = `I scored ${quizState.score}/${questions.length} (${percentage}%) on Do You Know Hertford! Can you beat me?`
-                if (navigator.share) { navigator.share({ text }) }
-                else { navigator.clipboard.writeText(text); alert('Score copied!') }
-              }}
-              className="text-gray-500 font-medium hover:text-hertford-green transition-colors text-sm py-2"
-            >
-              Share your score →
-            </button>
           </div>
         </div>
       </div>
     )
   }
 
-  // ===== QUIZ SCREEN =====
+  // ===== PLAYING =====
+  if (!currentQuestion) return null
+
   const timerPercentage = (timeLeft / SECONDS_PER_QUESTION) * 100
   const timerColor = timeLeft > 10 ? 'bg-hertford-green' : timeLeft > 5 ? 'bg-yellow-500' : 'bg-red-500'
 
@@ -332,14 +437,9 @@ export default function QuizPage() {
         </div>
         <div className="flex justify-between mt-2">
           <span className={`text-sm font-bold ${timeLeft <= 5 ? 'text-red-500 animate-pulse' : 'text-gray-400'}`}>{timeLeft}s</span>
-          <div className="flex gap-2">
-            <span className={`px-3 py-0.5 text-xs font-medium rounded-full capitalize ${currentQuestion.difficulty === 'easy' ? 'bg-green-100 text-green-700' : currentQuestion.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
-              {currentQuestion.difficulty}
-            </span>
-            <span className="px-3 py-0.5 bg-gray-100 text-gray-600 text-xs font-medium rounded-full capitalize">
-              {currentQuestion.category.replace('-', ' & ')}
-            </span>
-          </div>
+          <span className={`px-3 py-0.5 text-xs font-medium rounded-full capitalize ${currentQuestion.difficulty === 'easy' ? 'bg-green-100 text-green-700' : currentQuestion.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>
+            {currentQuestion.difficulty}
+          </span>
         </div>
       </div>
 
