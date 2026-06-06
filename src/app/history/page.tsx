@@ -89,6 +89,24 @@ export default function HistoryPage() {
     }))
     .sort((a, b) => b.accuracy - a.accuracy)
 
+  // Calculate difficulty stats
+  const difficultyStats = answers.reduce((acc, a) => {
+    const diff = a.difficulty || 'medium'
+    if (!acc[diff]) acc[diff] = { total: 0, correct: 0 }
+    acc[diff].total += 1
+    if (a.was_correct) acc[diff].correct += 1
+    return acc
+  }, {} as Record<string, { total: number; correct: number }>)
+
+  const difficultyList = ['easy', 'medium', 'hard']
+    .filter(d => difficultyStats[d])
+    .map(d => ({
+      difficulty: d,
+      total: difficultyStats[d].total,
+      correct: difficultyStats[d].correct,
+      accuracy: Math.round((difficultyStats[d].correct / difficultyStats[d].total) * 100),
+    }))
+
   const getCategoryEmoji = (cat: string) => {
     const emojis: Record<string, string> = {
       'history': '🏰', 'landmarks': '⛪', 'people': '👥', 'events': '📅',
@@ -103,6 +121,11 @@ export default function HistoryPage() {
       'food-drink': 'Food & Drink', 'local-business': 'Local Business', 'geography': 'Geography', 'culture': 'Culture',
     }
     return labels[cat] || cat
+  }
+
+  const getDifficultyEmoji = (diff: string) => {
+    const emojis: Record<string, string> = { 'easy': '🟢', 'medium': '🟡', 'hard': '🔴' }
+    return emojis[diff] || '⚪'
   }
 
   if (loading) {
@@ -184,6 +207,27 @@ export default function HistoryPage() {
         </div>
       )}
 
+      {/* Difficulty Breakdown */}
+      {difficultyList.length > 0 && (
+        <div className="card-elevated mb-10">
+          <h3 className="font-bold text-sm text-gray-900 mb-4">Performance by Difficulty</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {difficultyList.map((d) => (
+              <div key={d.difficulty} className={`rounded-xl p-4 border text-center ${
+                d.difficulty === 'easy' ? 'bg-green-50 border-green-100' :
+                d.difficulty === 'medium' ? 'bg-yellow-50 border-yellow-100' :
+                'bg-red-50 border-red-100'
+              }`}>
+                <span className="text-xl">{getDifficultyEmoji(d.difficulty)}</span>
+                <p className="font-bold capitalize mt-1">{d.difficulty}</p>
+                <p className="text-2xl font-black mt-1">{d.accuracy}%</p>
+                <p className="text-xs text-gray-500">{d.correct}/{d.total} correct</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Filter */}
       <div className="flex justify-center mb-8">
         <div className="inline-flex bg-gray-100 rounded-full p-1">
@@ -256,7 +300,15 @@ export default function HistoryPage() {
                   </div>
 
                   <p className="text-xs text-gray-400 mt-2">
-                    <span className="font-semibold">Source:</span> {answer.source}
+                    <span className="font-semibold">Source:</span>{' '}
+                    <a
+                      href={`https://www.google.com/search?q=${encodeURIComponent(answer.source + ' Hertford')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-500 hover:underline"
+                    >
+                      {answer.source} →
+                    </a>
                   </p>
                 </div>
               </div>
