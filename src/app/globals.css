@@ -51,6 +51,13 @@
            hover:border-hertford-green/50 hover:bg-hertford-green/5 hover:shadow-sm
            transition-all duration-200 font-medium text-gray-700
            active:scale-[0.98];
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  @media (hover: none) {
+    .quiz-option {
+      @apply hover:border-gray-100 hover:bg-transparent hover:shadow-none;
+    }
   }
 
   .quiz-option-selected {

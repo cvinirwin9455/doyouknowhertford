@@ -195,7 +195,13 @@ export default function QuizPage() {
   }
 
   const getOptionClass = (i: number) => {
-    if (!showFeedback) return selectedAnswer === i ? 'quiz-option quiz-option-selected' : 'quiz-option'
+    // No feedback yet and nothing selected — completely clean state
+    if (!showFeedback && selectedAnswer === null) return 'quiz-option'
+    // No feedback yet but this is the selected one
+    if (!showFeedback && selectedAnswer === i) return 'quiz-option quiz-option-selected'
+    // No feedback, not selected
+    if (!showFeedback) return 'quiz-option'
+    // Showing feedback — highlight correct/incorrect
     if (i === currentQuestion.correctAnswer) return 'quiz-option quiz-option-correct'
     if (i === selectedAnswer && selectedAnswer !== currentQuestion.correctAnswer) return 'quiz-option quiz-option-incorrect'
     return 'quiz-option opacity-50'
