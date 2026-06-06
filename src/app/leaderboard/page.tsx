@@ -46,18 +46,18 @@ export default function LeaderboardPage() {
       </div>
 
       {/* Period Tabs */}
-      <div className="flex justify-center mb-10">
+      <div className="flex justify-center mb-10 overflow-x-auto">
         <div className="inline-flex bg-gray-100 rounded-full p-1">
           {[
             { key: 'today' as Period, label: 'Today' },
-            { key: 'week' as Period, label: 'This Week' },
-            { key: 'month' as Period, label: 'This Month' },
+            { key: 'week' as Period, label: 'Week' },
+            { key: 'month' as Period, label: 'Month' },
             { key: 'all' as Period, label: 'All Time' },
           ].map(tab => (
             <button
               key={tab.key}
               onClick={() => setPeriod(tab.key)}
-              className={`px-6 py-2.5 rounded-full font-medium text-sm transition-all ${
+              className={`px-3 sm:px-6 py-2 sm:py-2.5 rounded-full font-medium text-xs sm:text-sm transition-all whitespace-nowrap ${
                 period === tab.key
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-500 hover:text-gray-700'
