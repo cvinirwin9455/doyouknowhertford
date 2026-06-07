@@ -35,9 +35,7 @@ export default function RootLayout({
         <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
           <nav className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2 group">
-              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-hertford-green to-hertford-green-light flex items-center justify-center text-white font-bold text-xs sm:text-sm shadow-md shadow-hertford-green/20">
-                H
-              </div>
+              <img src="/logo.png" alt="Do You Know Hertford?" className="h-8 sm:h-9 w-auto" />
               <span className="font-heading text-sm sm:text-lg font-bold text-gray-900 hidden sm:block">
                 Do You Know Hertford?
               </span>
