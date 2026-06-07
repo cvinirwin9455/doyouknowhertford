@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: 'Do You Know Hertford? | The Ultimate Hertford Quiz',
   description: 'Test your knowledge of Hertford, Hertfordshire! Free quiz with a shared leaderboard. 10 questions, 20 seconds each — compete with other locals!',
   openGraph: {
-    title: 'Do You Know Hertford?',
+    title: 'Do You Know Hertford? — Play the Free Local Quiz Now!',
     description: 'Test your knowledge of Hertford! Free quiz with leaderboards. 10 questions, 20 seconds each. How well do you really know our county town?',
     url: 'https://doyouknowhertford.com',
     siteName: 'Do You Know Hertford?',
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: 'summary_large_image',
-    title: 'Do You Know Hertford?',
+    title: 'Do You Know Hertford? — Play the Free Local Quiz Now!',
     description: 'Test your knowledge of Hertford! Free quiz with leaderboards. Compete with other locals!',
   },
   metadataBase: new URL('https://doyouknowhertford.com'),

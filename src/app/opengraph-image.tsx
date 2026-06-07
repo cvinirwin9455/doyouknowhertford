@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og'
 
 export const runtime = 'edge'
-export const alt = 'Do You Know Hertford? - The Ultimate Hertford Quiz'
+export const alt = 'Do You Know Hertford? - Test Your Knowledge of Hertford, Hertfordshire'
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'
 
@@ -48,18 +48,20 @@ export default async function Image() {
         </div>
         <div
           style={{
-            fontSize: '28px',
+            fontSize: '26px',
             color: '#94a3b8',
             textAlign: 'center',
             marginBottom: '40px',
+            maxWidth: '700px',
           }}
         >
-          The Ultimate Hertford Quiz
+          Test your knowledge of Hertford, Hertfordshire. Free quiz with leaderboards!
         </div>
         <div
           style={{
             display: 'flex',
             gap: '40px',
+            marginBottom: '40px',
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -75,15 +77,19 @@ export default async function Image() {
             <span style={{ fontSize: '16px', color: '#64748b' }}>To Play</span>
           </div>
         </div>
+        {/* Call to action */}
         <div
           style={{
-            position: 'absolute',
-            bottom: '30px',
-            fontSize: '18px',
-            color: '#475569',
+            background: 'linear-gradient(135deg, #059669, #10b981)',
+            padding: '16px 40px',
+            borderRadius: '50px',
+            fontSize: '24px',
+            fontWeight: 'bold',
+            color: 'white',
+            boxShadow: '0 10px 30px rgba(5, 150, 105, 0.4)',
           }}
         >
-          doyouknowhertford.com
+          Play Now — doyouknowhertford.com
         </div>
       </div>
     ),
