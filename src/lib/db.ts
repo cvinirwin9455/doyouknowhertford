@@ -42,7 +42,7 @@ export async function signIn(email: string, password: string): Promise<{ error: 
 
   if (error) {
     if (error.message.includes('Invalid login')) {
-      return { error: 'Wrong email or password' }
+      return { error: 'No account found with that email, or wrong password. Need an account? Click "Sign up" below.' }
     }
     return { error: error.message }
   }

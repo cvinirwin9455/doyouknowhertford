@@ -255,7 +255,7 @@ export default function QuizPage() {
             {authMode === 'login' ? 'Sign In' : 'Create Account'}
           </h2>
           <p className="text-gray-500 text-sm mb-6">
-            {authMode === 'login' ? 'Welcome back! Enter your details to play.' : 'Choose a username and password to get started.'}
+            {authMode === 'login' ? 'Welcome back! Enter your details to play.' : 'Choose a username and password to get started. It only takes a few seconds!'}
           </p>
 
           <div className="space-y-4 text-left mb-6">
@@ -323,7 +323,7 @@ export default function QuizPage() {
 
           <p className="text-sm text-gray-500 mt-4">
             {authMode === 'login' ? (
-              <>Don&apos;t have an account? <button onClick={() => { setAuthMode('signup'); setAuthError(''); setAuthSuccess('') }} className="text-hertford-green font-semibold hover:underline">Sign up</button></>
+              <>Don&apos;t have an account? <button onClick={() => { setAuthMode('signup'); setAuthError(''); setAuthSuccess('') }} className="text-hertford-green font-semibold hover:underline">Sign up — it&apos;s free!</button></>
             ) : (
               <>Already have an account? <button onClick={() => { setAuthMode('login'); setAuthError(''); setAuthSuccess('') }} className="text-hertford-green font-semibold hover:underline">Sign in</button></>
             )}
