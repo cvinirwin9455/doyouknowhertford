@@ -46,6 +46,9 @@ export default function RootLayout({
               <Link href="/quiz" className="text-gray-600 hover:text-hertford-green transition-colors font-medium text-xs sm:text-sm">
                 Quiz
               </Link>
+              <Link href="/weekly" className="text-purple-600 hover:text-purple-700 transition-colors font-medium text-xs sm:text-sm">
+                Weekly
+              </Link>
               <Link href="/leaderboard" className="text-gray-600 hover:text-hertford-green transition-colors font-medium text-xs sm:text-sm">
                 Board
               </Link>
