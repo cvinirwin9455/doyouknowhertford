@@ -94,7 +94,14 @@ export default function QuizPage() {
         setIsSubmitting(false); return
       }
       const { error } = await signIn(email.trim(), password)
-      if (error) { setAuthError(error); setIsSubmitting(false); return }
+      if (error) {
+        // Auto-switch to signup page with helpful message
+        setAuthMode('signup')
+        setAuthError('')
+        setAuthSuccess("We couldn't find an account with that email. Let's create one! Just choose a username below.")
+        setIsSubmitting(false)
+        return
+      }
     }
 
     // Auth successful — load player

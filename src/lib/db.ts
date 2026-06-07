@@ -7,10 +7,38 @@ import { Player, Score, QuizQuestion } from './types'
  * Sign up with username, email, and password.
  */
 export async function signUp(username: string, email: string, password: string): Promise<{ error: string | null }> {
+  // First try to sign up
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
   })
+
+  // If user already exists in auth (e.g. deleted account), try signing in instead
+  if (error && error.message.includes('already registered')) {
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+    
+    if (signInError) {
+      return { error: 'An account with this email already exists. Try signing in or use a different email.' }
+    }
+
+    // Sign in worked — create the player profile
+    if (signInData.user) {
+      const { error: profileError } = await supabase
+        .from('players')
+        .insert({ auth_id: signInData.user.id, username: username.toLowerCase(), email })
+
+      if (profileError) {
+        if (profileError.code === '23505') {
+          return { error: 'Username already taken — try another' }
+        }
+        return { error: profileError.message }
+      }
+    }
+    return { error: null }
+  }
 
   if (error) return { error: error.message }
 
