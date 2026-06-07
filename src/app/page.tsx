@@ -33,7 +33,7 @@ export default function HomePage() {
           <h1 className="font-heading text-5xl md:text-7xl font-black mb-6 tracking-tight text-white">
             Do You Know
             <br />
-            <span className="bg-gradient-to-r from-red-400 via-yellow-300 via-green-400 via-blue-400 to-purple-400 bg-clip-text text-transparent">Hertford?</span>
+            <span className="bg-gradient-to-r from-red-400 via-green-400 to-purple-400 bg-clip-text text-transparent">Hertford?</span>
           </h1>
 
           <p className="text-xl text-gray-200 mb-10 max-w-xl mx-auto leading-relaxed">
