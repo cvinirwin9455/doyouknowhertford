@@ -64,6 +64,9 @@ export default function RootLayout({
         <footer className="bg-gray-50 border-t border-gray-100 py-8">
           <div className="max-w-6xl mx-auto px-6 text-center">
             <div className="flex justify-center gap-4 mb-3">
+              <Link href="/faq" className="text-gray-400 hover:text-hertford-green transition-colors text-xs">
+                FAQ
+              </Link>
               <Link href="/privacy" className="text-gray-400 hover:text-hertford-green transition-colors text-xs">
                 Privacy Policy
               </Link>
