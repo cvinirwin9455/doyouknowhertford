@@ -8,6 +8,7 @@ import { Player } from '@/lib/types'
 
 export default function DeleteAccountPage() {
   const [player, setPlayer] = useState<Player | null>(null)
+  const [authId, setAuthId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [confirmText, setConfirmText] = useState('')
   const [isDeleting, setIsDeleting] = useState(false)
@@ -21,6 +22,7 @@ export default function DeleteAccountPage() {
   const loadUser = async () => {
     const user = await getCurrentUser()
     if (user) {
+      setAuthId(user.id)
       const p = await getPlayerByAuthId(user.id)
       setPlayer(p)
     }
@@ -32,48 +34,34 @@ export default function DeleteAccountPage() {
       setError('Please type DELETE to confirm')
       return
     }
-    if (!player) return
+    if (!player || !authId) return
 
     setIsDeleting(true)
     setError('')
 
-    // Delete player answers first (foreign key constraint)
-    const { error: answersError } = await supabase
-      .from('player_answers')
-      .delete()
-      .eq('player_id', player.id)
-    
-    if (answersError) {
-      console.error('Error deleting answers:', answersError)
-    }
+    try {
+      // Call the API route which uses the service role key to fully delete
+      const response = await fetch('/api/delete-account', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerId: player.id, authId }),
+      })
 
-    // Delete scores
-    const { error: scoresError } = await supabase
-      .from('scores')
-      .delete()
-      .eq('player_id', player.id)
-    
-    if (scoresError) {
-      console.error('Error deleting scores:', scoresError)
-    }
+      const result = await response.json()
 
-    // Delete player profile
-    const { error: playerError } = await supabase
-      .from('players')
-      .delete()
-      .eq('id', player.id)
-    
-    if (playerError) {
-      console.error('Error deleting player:', playerError)
-      setError(`Could not delete account: ${playerError.message}. Please contact support.`)
+      if (!response.ok) {
+        setError(result.error || 'Something went wrong. Please try again.')
+        setIsDeleting(false)
+        return
+      }
+
+      // Sign out locally
+      await signOut()
+      setDeleted(true)
+    } catch (err) {
+      setError('Something went wrong. Please try again or contact support.')
       setIsDeleting(false)
-      return
     }
-
-    // Sign out
-    await signOut()
-    
-    setDeleted(true)
   }
 
   if (loading) {
@@ -93,7 +81,7 @@ export default function DeleteAccountPage() {
           </div>
           <h2 className="font-heading text-2xl font-bold mb-3">Account Deleted</h2>
           <p className="text-gray-500 mb-6">
-            Your account and all associated data have been permanently deleted.
+            Your account and all associated data have been permanently deleted. No record of your account remains.
           </p>
           <Link href="/" className="btn-primary">Back to Home</Link>
         </div>
@@ -125,15 +113,16 @@ export default function DeleteAccountPage() {
         </p>
 
         <div className="bg-red-50 border border-red-100 rounded-xl p-4 mb-6">
-          <h3 className="font-bold text-sm text-red-800 mb-2">This will delete:</h3>
+          <h3 className="font-bold text-sm text-red-800 mb-2">This will permanently delete:</h3>
           <ul className="text-sm text-red-700 space-y-1">
             <li>• Your account (@{player.username})</li>
+            <li>• Your login credentials</li>
             <li>• Your email address</li>
             <li>• All your quiz scores</li>
             <li>• Your answer history</li>
             <li>• Your leaderboard position</li>
           </ul>
-          <p className="text-sm text-red-800 font-bold mt-3">This action cannot be undone.</p>
+          <p className="text-sm text-red-800 font-bold mt-3">No record of your account will remain. This cannot be undone.</p>
         </div>
 
         <div className="mb-6">
@@ -160,7 +149,7 @@ export default function DeleteAccountPage() {
           disabled={isDeleting || confirmText !== 'DELETE'}
           className="w-full bg-red-600 text-white px-6 py-3 rounded-full font-semibold hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {isDeleting ? 'Deleting...' : 'Permanently Delete My Account'}
+          {isDeleting ? 'Deleting everything...' : 'Permanently Delete My Account'}
         </button>
 
         <Link href="/quiz" className="block text-center text-sm text-gray-400 hover:text-hertford-green mt-4">
