@@ -37,24 +37,43 @@ export default function DeleteAccountPage() {
     setIsDeleting(true)
     setError('')
 
-    try {
-      // Delete player answers
-      await supabase.from('player_answers').delete().eq('player_id', player.id)
-      
-      // Delete scores
-      await supabase.from('scores').delete().eq('player_id', player.id)
-      
-      // Delete player profile
-      await supabase.from('players').delete().eq('id', player.id)
-
-      // Sign out
-      await signOut()
-      
-      setDeleted(true)
-    } catch (err) {
-      setError('Something went wrong. Please try again or contact us.')
-      setIsDeleting(false)
+    // Delete player answers first (foreign key constraint)
+    const { error: answersError } = await supabase
+      .from('player_answers')
+      .delete()
+      .eq('player_id', player.id)
+    
+    if (answersError) {
+      console.error('Error deleting answers:', answersError)
     }
+
+    // Delete scores
+    const { error: scoresError } = await supabase
+      .from('scores')
+      .delete()
+      .eq('player_id', player.id)
+    
+    if (scoresError) {
+      console.error('Error deleting scores:', scoresError)
+    }
+
+    // Delete player profile
+    const { error: playerError } = await supabase
+      .from('players')
+      .delete()
+      .eq('id', player.id)
+    
+    if (playerError) {
+      console.error('Error deleting player:', playerError)
+      setError(`Could not delete account: ${playerError.message}. Please contact support.`)
+      setIsDeleting(false)
+      return
+    }
+
+    // Sign out
+    await signOut()
+    
+    setDeleted(true)
   }
 
   if (loading) {
