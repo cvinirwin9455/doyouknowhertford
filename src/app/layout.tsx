@@ -35,10 +35,7 @@ export default function RootLayout({
         <header className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-100">
           <nav className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2 group">
-              <img src="/logo.png" alt="Do You Know Hertford?" className="h-8 sm:h-9 w-auto" />
-              <span className="font-heading text-sm sm:text-lg font-bold text-gray-900 hidden sm:block">
-                Do You Know Hertford?
-              </span>
+              <img src="/logo.png" alt="Do You Know Hertford?" className="h-12 sm:h-14 w-auto" />
             </Link>
             <div className="flex items-center gap-3 sm:gap-4">
               <Link href="/quiz" className="text-gray-600 hover:text-hertford-green transition-colors font-medium text-xs sm:text-sm">
